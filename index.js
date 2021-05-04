@@ -15,8 +15,6 @@ console.log(
 
 const argv = minimist(process.argv.slice(2));
 
-console.log(argv);
-
 if (argv._.length === 0) {
   return console.log(chalk.red("Please enter a valid command"));
 }
@@ -26,7 +24,7 @@ const availableCommands = {
 };
 
 if (availableCommands[argv._[0]]) {
-  return availableCommands[argv._[0]]();
+  return availableCommands[argv._[0]](argv);
 } else {
   return console.log(chalk.red("Please enter a valid command"));
 }
