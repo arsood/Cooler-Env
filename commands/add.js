@@ -5,6 +5,8 @@ const clear = require("clear");
 const chalk = require("chalk");
 const figlet = require("figlet");
 
+const fileEncryption = require("../utils/fileEncryption");
+
 const add = (argv) => {
   clear();
 
@@ -42,10 +44,26 @@ const add = (argv) => {
     }
   ])
   .then((answers) => {
-    fs.appendFile(path.join(__dirname, `../config/${argv.e}.yml.enc`), `${answers.keyName}: ${answers.keyValue}\n`, (editFileErr) => {
-      if (editFileErr) {
-        return console.log(chalk.red("There was an error adding the key-value pair"), editFileErr);
-      }
+    const encryptedFilePath = path.join(__dirname, `../config/${argv.e}.yml.enc`);
+    const encryptionKey = path.join(__dirname, `../config/${argv.e}.key`);
+    const ivPath = path.join(__dirname, `../config/${argv.e}.iv`);
+
+    fileEncryption
+    .decryptFile(encryptedFilePath, encryptionKey, ivPath)
+    .then((decryptedFile) => {
+      const newDataToEncrypt = decryptedFile + `${answers.keyName}: ${answers.keyValue}\n`;
+
+      fileEncryption
+      .encryptFile(encryptionKey, ivPath, newDataToEncrypt)
+      .then((encryptedFile) => {
+        fs.appendFile(encryptedFilePath, encryptedFile, (editFileErr) => {
+          if (editFileErr) {
+            return console.log(chalk.red("There was an error adding the key-value pair"), editFileErr);
+          }
+    
+          console.log("Done! 🌟");
+        });
+      });
     });
   });
 }
