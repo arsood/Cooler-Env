@@ -22,7 +22,7 @@ const init = (argv) => {
     }
   });
 
-  fs.writeFile(path.join(__dirname, `../config/${argv.e}.iv`), crypto.randomBytes(8).toString("hex"), (mkfileErr) => {
+  fs.writeFile(path.join(__dirname, `../config/${argv.e}.iv`), crypto.randomBytes(16).toString("hex"), (mkfileErr) => {
     if (mkfileErr) {
       return console.log(chalk.red("There was an error writing the appropriate files \n\n"), mkfileErr);
     }

@@ -13,7 +13,7 @@ const encryptFile = (secretKeyPath, ivPath, newDataToEncrypt) => {
           return reject("There was a problem reading the IV \n", ivErr);
         }
 
-        const cipher = crypto.createCipheriv("aes-256-ctr", secretKeyData, ivData);
+        const cipher = crypto.createCipheriv("aes-256-ctr", secretKeyData, Buffer.from(ivData, "hex"));
 
         const encrypted = Buffer.concat([cipher.update(newDataToEncrypt), cipher.final()]);
 
@@ -40,11 +40,9 @@ const decryptFile = (filePath, secretKeyPath, ivPath) => {
             return reject("There was a problem reading the IV \n", ivErr);
           }
   
-          const decipher = crypto.createDecipheriv("aes-256-ctr", secretKeyData, ivData);
+          const decipher = crypto.createDecipheriv("aes-256-ctr", secretKeyData, Buffer.from(ivData, "hex"));
 
           const decrypted = Buffer.concat([decipher.update(Buffer.from(fileData, "hex")), decipher.final()]);
-
-          console.log(decrypted.toString(), "DECRYPTED");
 
           return resolve(decrypted.toString());
         });
