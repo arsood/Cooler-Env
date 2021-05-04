@@ -4,6 +4,7 @@ const figlet = require("figlet");
 const minimist = require("minimist");
 
 const init = require("./commands/init");
+const edit = require("./commands/edit");
 
 clear();
 
@@ -20,7 +21,8 @@ if (argv._.length === 0) {
 }
 
 const availableCommands = {
-  "init": init
+  "init": init,
+  "edit": edit
 };
 
 if (availableCommands[argv._[0]]) {

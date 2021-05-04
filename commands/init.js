@@ -3,7 +3,7 @@ const path = require("path");
 const chalk = require("chalk");
 const crypto = require("crypto");
 
-const init = async (argv) => {
+const init = (argv) => {
   if (!fs.existsSync(path.join(__dirname, `../config`))) {
     fs.mkdirSync(path.join(__dirname, `../config`));
   }
