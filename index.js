@@ -5,6 +5,7 @@ const minimist = require("minimist");
 
 const init = require("./commands/init");
 const edit = require("./commands/edit");
+const add = require("./commands/add");
 
 const loadEnv = require("./loadEnv");
 
@@ -24,7 +25,8 @@ if (argv._.length === 0) {
 
 const availableCommands = {
   "init": init,
-  "edit": edit
+  "edit": edit,
+  "add": add
 };
 
 if (availableCommands[argv._[0]]) {

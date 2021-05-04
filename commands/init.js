@@ -16,7 +16,7 @@ const init = (argv) => {
     }
   });
 
-  fs.writeFile(path.join(__dirname, `../config/${argv.e}.enc`), "", (mkfileErr) => {
+  fs.writeFile(path.join(__dirname, `../config/${argv.e}.yml.enc`), "", (mkfileErr) => {
     if (mkfileErr) {
       return console.log(chalk.red("There was an error writing the appropriate files \n\n"), mkfileErr);
     }
