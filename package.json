@@ -1,0 +1,14 @@
+{
+  "name": "cooler-env",
+  "version": "0.0.1",
+  "description": "A cooler way to do environment variables",
+  "main": "index.js",
+  "author": "Arun Sood",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.1",
+    "clear": "^0.1.0",
+    "figlet": "^1.5.0",
+    "minimist": "^1.2.5"
+  }
+}
