@@ -6,6 +6,8 @@ const minimist = require("minimist");
 const init = require("./commands/init");
 const edit = require("./commands/edit");
 
+const loadEnv = require("./loadEnv");
+
 clear();
 
 console.log(
@@ -26,7 +28,11 @@ const availableCommands = {
 };
 
 if (availableCommands[argv._[0]]) {
-  return availableCommands[argv._[0]](argv);
+  availableCommands[argv._[0]](argv);
 } else {
-  return console.log(chalk.red("Please enter a valid command"));
+  console.log(chalk.red("Please enter a valid command"));
 }
+
+module.exports = {
+  loadEnv
+};
