@@ -5,6 +5,14 @@ const crypto = require("crypto");
 const Cryptify = require("cryptify");
 
 const init = (argv) => {
+  clear();
+
+  console.log(
+    chalk.green(
+      figlet.textSync("Cooler Env", { horizontalLayout: "full" })
+    )
+  );
+  
   if (!argv.e) {
     return console.log(
       chalk.red("Please enter a valid environment with the -e option")
@@ -15,7 +23,7 @@ const init = (argv) => {
     fs.mkdirSync(path.join(__dirname, `../config`));
   }
 
-  const newKey = crypto.randomBytes(16).toString('hex');
+  const newKey = crypto.randomBytes(16).toString("hex");
 
   fs.writeFile(path.join(__dirname, `../config/${argv.e}.key`), newKey, (mkfileErr) => {
     if (mkfileErr) {

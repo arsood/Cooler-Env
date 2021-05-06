@@ -9,14 +9,6 @@ const add = require("./commands/add");
 
 const loadEnv = require("./loadEnv");
 
-clear();
-
-console.log(
-  chalk.green(
-    figlet.textSync('Cooler Env', { horizontalLayout: 'full' })
-  )
-);
-
 const argv = minimist(process.argv.slice(2));
 
 if (argv._.length === 0) {

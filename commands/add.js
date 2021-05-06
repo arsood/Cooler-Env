@@ -11,7 +11,7 @@ const add = (argv) => {
 
   console.log(
     chalk.green(
-      figlet.textSync('Cooler Env', { horizontalLayout: 'full' })
+      figlet.textSync("Cooler Env", { horizontalLayout: "full" })
     )
   );
 
