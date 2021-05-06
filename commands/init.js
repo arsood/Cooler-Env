@@ -3,6 +3,8 @@ const path = require("path");
 const chalk = require("chalk");
 const crypto = require("crypto");
 const Cryptify = require("cryptify");
+const clear = require("clear");
+const figlet = require("figlet");
 
 const init = (argv) => {
   clear();
@@ -40,6 +42,8 @@ const init = (argv) => {
 
     encryptedFileInstance.encrypt();
   });
+
+  console.log("Init complete! 💯");
 }
 
 module.exports = init;
