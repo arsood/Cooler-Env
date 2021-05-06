@@ -7,6 +7,9 @@ const clear = require("clear");
 const figlet = require("figlet");
 
 const init = (argv) => {
+  const ENCRYPTION_KEY_PATH = path.join(__dirname, `../config/${argv.e}.key`);
+  const ENCRYPTED_FILE_PATH = path.join(__dirname, `../config/${argv.e}.yml.enc`);
+
   clear();
 
   console.log(
@@ -27,18 +30,18 @@ const init = (argv) => {
 
   const newKey = crypto.randomBytes(16).toString("hex");
 
-  fs.writeFile(path.join(__dirname, `../config/${argv.e}.key`), newKey, (mkfileErr) => {
+  fs.writeFile(ENCRYPTION_KEY_PATH, newKey, (mkfileErr) => {
     if (mkfileErr) {
       return console.log(chalk.red("There was an error writing the appropriate files \n\n"), mkfileErr);
     }
   });
 
-  fs.writeFile(path.join(__dirname, `../config/${argv.e}.yml.enc`), "{}", (mkfileErr) => {
+  fs.writeFile(ENCRYPTED_FILE_PATH, "{}", (mkfileErr) => {
     if (mkfileErr) {
       return console.log(chalk.red("There was an error writing the appropriate files \n\n"), mkfileErr);
     }
 
-    const encryptedFileInstance = new Cryptify(path.join(__dirname, `../config/${argv.e}.yml.enc`), newKey, null, null, true, true);
+    const encryptedFileInstance = new Cryptify(ENCRYPTED_FILE_PATH, newKey, null, null, true, true);
 
     encryptedFileInstance.encrypt();
   });

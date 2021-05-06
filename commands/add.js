@@ -7,6 +7,17 @@ const figlet = require("figlet");
 const Cryptify = require("cryptify");
 
 const add = (argv) => {
+  const ENCRYPTION_KEY_PATH = path.join(__dirname, `../config/${argv.e}.key`);
+  const ENCRYPTED_FILE_PATH = path.join(__dirname, `../config/${argv.e}.yml.enc`);
+
+  if (!fs.existsSync(ENCRYPTION_KEY_PATH)) {
+    return console.log(chalk.red(`Encryption key not found for environment "${argv.e}"`));
+  }
+
+  if (!fs.existsSync(ENCRYPTED_FILE_PATH)) {
+    return console.log(chalk.red(`Encrypted file not found for environment "${argv.e}"`));
+  }
+
   clear();
 
   console.log(
@@ -44,10 +55,10 @@ const add = (argv) => {
   ])
   .then((answers) => {
     const secretKeyData = fs
-    .readFileSync(path.join(__dirname, `../config/${argv.e}.key`))
+    .readFileSync(ENCRYPTION_KEY_PATH)
     .toString();
 
-    const encryptedFileInstance = new Cryptify(path.join(__dirname, `../config/${argv.e}.yml.enc`), secretKeyData, null, null, true, true);
+    const encryptedFileInstance = new Cryptify(ENCRYPTED_FILE_PATH, secretKeyData, null, null, true, true);
 
     encryptedFileInstance
     .decrypt()
@@ -60,7 +71,7 @@ const add = (argv) => {
 
       parsedObj[answers.keyName] = answers.keyValue;
 
-      fs.writeFileSync(path.join(__dirname, `../config/${argv.e}.yml.enc`), JSON.stringify(parsedObj));
+      fs.writeFileSync(ENCRYPTED_FILE_PATH, JSON.stringify(parsedObj));
     })
     .then(() => {
       encryptedFileInstance.encrypt();
