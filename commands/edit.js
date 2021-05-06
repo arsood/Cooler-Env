@@ -29,9 +29,10 @@ const edit = (argv) => {
   .then((files) => {
     const parsedObj = JSON.parse(files[0]);
 
-    if (Object.keys(parsedObj).length === 0) {
-      encryptedFileInstance.encrypt();
+    // Encrypt again to protect against user SIGINT corrupting file
+    encryptedFileInstance.encrypt();
 
+    if (Object.keys(parsedObj).length === 0) {
       return console.log(chalk.red("Nothing to edit. Please add some keys first."));
     }
 
