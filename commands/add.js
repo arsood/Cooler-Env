@@ -4,8 +4,7 @@ const path = require("path");
 const clear = require("clear");
 const chalk = require("chalk");
 const figlet = require("figlet");
-
-const fileEncryption = require("../utils/fileEncryption");
+const Cryptify = require("cryptify");
 
 const add = (argv) => {
   clear();
@@ -44,26 +43,30 @@ const add = (argv) => {
     }
   ])
   .then((answers) => {
-    const encryptedFilePath = path.join(__dirname, `../config/${argv.e}.yml.enc`);
-    const encryptionKey = path.join(__dirname, `../config/${argv.e}.key`);
-    const ivPath = path.join(__dirname, `../config/${argv.e}.iv`);
+    const secretKeyData = fs
+    .readFileSync(path.join(__dirname, `../config/${argv.e}.key`))
+    .toString();
 
-    fileEncryption
-    .decryptFile(encryptedFilePath, encryptionKey, ivPath)
-    .then((decryptedFile) => {
-      const newDataToEncrypt = decryptedFile + `${answers.keyName}: ${answers.keyValue}\n`;
+    const encryptedFileInstance = new Cryptify(path.join(__dirname, `../config/${argv.e}.yml.enc`), secretKeyData, null, null, true, true);
 
-      fileEncryption
-      .encryptFile(encryptionKey, ivPath, newDataToEncrypt)
-      .then((encryptedFile) => {
-        fs.appendFile(encryptedFilePath, encryptedFile, (editFileErr) => {
-          if (editFileErr) {
-            return console.log(chalk.red("There was an error adding the key-value pair"), editFileErr);
-          }
-    
-          console.log("Done! 🌟");
-        });
-      });
+    encryptedFileInstance
+    .decrypt()
+    .then((files) => {
+      const parsedObj = JSON.parse(files[0]);
+
+      if (parsedObj[answers.keyName]) {
+        return console.log(chalk.red("The key exists already. Try editing instead?"));
+      }
+
+      parsedObj[answers.keyName] = answers.keyValue;
+
+      fs.writeFileSync(path.join(__dirname, `../config/${argv.e}.yml.enc`), JSON.stringify(parsedObj));
+    })
+    .then(() => {
+      encryptedFileInstance.encrypt();
+    })
+    .then(() => {
+      console.log("Done! 🌟");
     });
   });
 }
