@@ -7,8 +7,8 @@ const figlet = require("figlet");
 const Cryptify = require("cryptify");
 
 const add = (argv) => {
-  const ENCRYPTION_KEY_PATH = path.join(__dirname, `../config/${argv.e}.key`);
-  const ENCRYPTED_FILE_PATH = path.join(__dirname, `../config/${argv.e}.yml.enc`);
+  const ENCRYPTION_KEY_PATH = path.join(process.cwd(), `config/${argv.e}.key`);
+  const ENCRYPTED_FILE_PATH = path.join(process.cwd(), `config/${argv.e}.yml.enc`);
 
   clear();
 

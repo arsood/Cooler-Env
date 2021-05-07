@@ -7,8 +7,9 @@ const clear = require("clear");
 const figlet = require("figlet");
 
 const init = (argv) => {
-  const ENCRYPTION_KEY_PATH = path.join(__dirname, `../config/${argv.e}.key`);
-  const ENCRYPTED_FILE_PATH = path.join(__dirname, `../config/${argv.e}.yml.enc`);
+  const ENCRYPTION_KEY_PATH = path.join(process.cwd(), `config/${argv.e}.key`);
+  const ENCRYPTED_FILE_PATH = path.join(process.cwd(), `config/${argv.e}.yml.enc`);
+  const CONFIG_DIR_PATH = path.join(process.cwd(), "config");
 
   clear();
 
@@ -24,8 +25,8 @@ const init = (argv) => {
     );
   }
 
-  if (!fs.existsSync(path.join(__dirname, `../config`))) {
-    fs.mkdirSync(path.join(__dirname, `../config`));
+  if (!fs.existsSync(CONFIG_DIR_PATH)) {
+    fs.mkdirSync(CONFIG_DIR_PATH);
   }
 
   const newKey = crypto.randomBytes(16).toString("hex");
