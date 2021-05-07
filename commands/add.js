@@ -10,14 +10,6 @@ const add = (argv) => {
   const ENCRYPTION_KEY_PATH = path.join(__dirname, `../config/${argv.e}.key`);
   const ENCRYPTED_FILE_PATH = path.join(__dirname, `../config/${argv.e}.yml.enc`);
 
-  if (!fs.existsSync(ENCRYPTION_KEY_PATH)) {
-    return console.log(chalk.red(`Encryption key not found for environment "${argv.e}"`));
-  }
-
-  if (!fs.existsSync(ENCRYPTED_FILE_PATH)) {
-    return console.log(chalk.red(`Encrypted file not found for environment "${argv.e}"`));
-  }
-
   clear();
 
   console.log(
@@ -25,6 +17,20 @@ const add = (argv) => {
       figlet.textSync("Cooler Env", { horizontalLayout: "full" })
     )
   );
+
+  if (!argv.e) {
+    return console.log(
+      chalk.red("Please enter a valid environment with the -e option")
+    );
+  }
+
+  if (!fs.existsSync(ENCRYPTION_KEY_PATH)) {
+    return console.log(chalk.red(`Encryption key not found for environment "${argv.e}"`));
+  }
+
+  if (!fs.existsSync(ENCRYPTED_FILE_PATH)) {
+    return console.log(chalk.red(`Encrypted file not found for environment "${argv.e}"`));
+  }
 
   inquirer
   .prompt([

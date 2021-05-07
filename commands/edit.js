@@ -18,6 +18,20 @@ const edit = (argv) => {
     )
   );
 
+  if (!argv.e) {
+    return console.log(
+      chalk.red("Please enter a valid environment with the -e option")
+    );
+  }
+
+  if (!fs.existsSync(ENCRYPTION_KEY_PATH)) {
+    return console.log(chalk.red(`Encryption key not found for environment "${argv.e}"`));
+  }
+
+  if (!fs.existsSync(ENCRYPTED_FILE_PATH)) {
+    return console.log(chalk.red(`Encrypted file not found for environment "${argv.e}"`));
+  }
+
   const secretKeyData = fs
   .readFileSync(ENCRYPTION_KEY_PATH)
   .toString();
