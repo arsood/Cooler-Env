@@ -1,6 +1,6 @@
 {
   "name": "cooler-env",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "A cooler way to do environment variables",
   "main": "index.js",
   "author": "Arun Sood",
