@@ -7,8 +7,9 @@ const Cryptify = require("cryptify");
 const inquirer = require("inquirer");
 
 const deleteCmd = (argv) => {
-  const ENCRYPTION_KEY_PATH = path.join(process.cwd(), `config/${argv.e}.key`);
-  const ENCRYPTED_FILE_PATH = path.join(process.cwd(), `config/${argv.e}.yml.enc`);
+  const CONFIG_DIR_PATH = path.join(process.cwd(), argv.p ? argv.p : "config");
+  const ENCRYPTION_KEY_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.key`);
+  const ENCRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.yml.enc`);
 
   clear();
 

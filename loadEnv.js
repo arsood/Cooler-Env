@@ -2,9 +2,10 @@ const path = require("path");
 const fs = require("fs");
 const Cryptify = require("cryptify");
 
-const loadEnv = (env) => {
-  const ENCRYPTION_KEY_PATH = path.join(process.cwd(), `config/${env}.key`);
-  const ENCRYPTED_FILE_PATH = path.join(process.cwd(), `config/${env}.yml.enc`);
+const loadEnv = (env, configPath = null) => {
+  const CONFIG_DIR_PATH = path.join(process.cwd(), configPath ? configPath : "config");
+  const ENCRYPTION_KEY_PATH = path.join(CONFIG_DIR_PATH, `${env}.key`);
+  const ENCRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${env}.yml.enc`);
 
   if (!env) {
     throw new Error("loadEnv requires a valid environment name to be passed as an argument");
