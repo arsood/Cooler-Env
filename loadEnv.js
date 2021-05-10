@@ -24,7 +24,7 @@ const loadEnv = (env) => {
 
   const encryptedFileInstance = new Cryptify(ENCRYPTED_FILE_PATH, secretKeyData, null, null, true, true);
 
-  encryptedFileInstance
+  return encryptedFileInstance
   .decrypt()
   .then((files) => {
     const parsedObj = JSON.parse(files[0]);
