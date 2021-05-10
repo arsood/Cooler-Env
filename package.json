@@ -5,6 +5,10 @@
   "main": "index.js",
   "author": "Arun Sood",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arsood/Cooler-Env.git"
+  },
   "dependencies": {
     "chalk": "^4.1.1",
     "clear": "^0.1.0",
