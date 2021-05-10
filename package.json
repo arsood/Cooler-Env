@@ -1,7 +1,7 @@
 {
   "name": "cooler-env",
   "version": "0.0.4",
-  "description": "A cooler way to do environment variables",
+  "description": "CLI + module utility to help you manage your environment variables better. Inspired by Ruby on Rails credentials.",
   "main": "index.js",
   "author": "Arun Sood",
   "license": "MIT",
