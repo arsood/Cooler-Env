@@ -31,21 +31,19 @@ const init = (argv) => {
 
   const newKey = crypto.randomBytes(16).toString("hex");
 
-  fs.writeFile(ENCRYPTION_KEY_PATH, newKey, (mkfileErr) => {
-    if (mkfileErr) {
-      return console.log(chalk.red("There was an error writing the appropriate files \n\n"), mkfileErr);
-    }
-  });
+  fs.writeFileSync(ENCRYPTION_KEY_PATH, newKey);
+  
+  console.log(chalk.green(`Writing encryption key to: ${ENCRYPTION_KEY_PATH}`));
+  
+  console.log(chalk.red(`WARNING: DO NOT CHECK THE .KEY FILE INTO VERSION CONTROL. PLEASE ADD TO GITIGNORE OTHERWISE YOUR KEYS CAN BE DECRYPTED AND EXPOSED.`));
 
-  fs.writeFile(ENCRYPTED_FILE_PATH, "{}", (mkfileErr) => {
-    if (mkfileErr) {
-      return console.log(chalk.red("There was an error writing the appropriate files \n\n"), mkfileErr);
-    }
+  fs.writeFileSync(ENCRYPTED_FILE_PATH, "{}");
 
-    const encryptedFileInstance = new Cryptify(ENCRYPTED_FILE_PATH, newKey, null, null, true, true);
+  console.log(chalk.green(`Writing encrypted file to: ${ENCRYPTED_FILE_PATH}`));
 
-    encryptedFileInstance.encrypt();
-  });
+  const encryptedFileInstance = new Cryptify(ENCRYPTED_FILE_PATH, newKey, null, null, true, true);
+
+  encryptedFileInstance.encrypt();
 
   console.log("Init complete! 💯");
 }
