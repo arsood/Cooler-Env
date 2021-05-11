@@ -10,6 +10,7 @@ const edit = (argv) => {
   const CONFIG_DIR_PATH = path.join(process.cwd(), argv.p ? argv.p : "config");
   const ENCRYPTION_KEY_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.key`);
   const ENCRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.yml.enc`);
+  const DECRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}-d.yml.enc.tmp`);
 
   clear();
 
@@ -33,19 +34,20 @@ const edit = (argv) => {
     return console.log(chalk.red(`Encrypted file not found for environment "${argv.e}"`));
   }
 
+  fs.copyFileSync(ENCRYPTED_FILE_PATH, DECRYPTED_FILE_PATH);
+
   const secretKeyData = fs
   .readFileSync(ENCRYPTION_KEY_PATH)
   .toString();
 
-  const encryptedFileInstance = new Cryptify(ENCRYPTED_FILE_PATH, secretKeyData, null, null, true, true);
+  const decryptedFileInstance = new Cryptify(DECRYPTED_FILE_PATH, secretKeyData, null, null, true, true);
 
-  encryptedFileInstance
+  decryptedFileInstance
   .decrypt()
   .then((files) => {
-    const parsedObj = JSON.parse(files[0]);
+    fs.unlinkSync(DECRYPTED_FILE_PATH);
 
-    // Encrypt again to protect against user SIGINT corrupting file
-    encryptedFileInstance.encrypt();
+    const parsedObj = JSON.parse(files[0]);
 
     if (Object.keys(parsedObj).length === 0) {
       return console.log(chalk.red("Nothing to edit. Please add some keys first."));
@@ -80,9 +82,10 @@ const edit = (argv) => {
       .then((inputAnswers) => {
         parsedObj[listAnswers.keyToEdit] = inputAnswers.keyEditedValue;
 
+        const encryptedFileInstance = new Cryptify(ENCRYPTED_FILE_PATH, secretKeyData, null, null, true, true);
+
         fs.writeFileSync(ENCRYPTED_FILE_PATH, JSON.stringify(parsedObj));
-      })
-      .then(() => {
+
         encryptedFileInstance.encrypt();
       })
       .then(() => {
