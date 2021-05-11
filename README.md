@@ -28,7 +28,7 @@ cooler-env init -e development
 
 This command will set up two files - a .enc file and a .key file. The .enc file is an encrypted binary containing all of your keys that can be safely committed to version control. The .key file is your secret key file that is used to decrypt the binary file.
 
-WARNING: DO NOT CHECK THE .KEY FILE INTO VERSION CONTROL. PLEASE ADD TO GITIGNORE OTHERWISE YOUR KEYS CAN BE DECRYPTED AND EXPOSED.
+WARNING: DO NOT CHECK THE .KEY FILE INTO VERSION CONTROL OTHERWISE YOUR KEYS CAN BE DECRYPTED AND EXPOSED.
 
 ### Options:
 
