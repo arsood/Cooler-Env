@@ -10,6 +10,7 @@ const init = (argv) => {
   const CONFIG_DIR_PATH = path.join(process.cwd(), argv.p ? argv.p : "config");
   const ENCRYPTION_KEY_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.key`);
   const ENCRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.yml.enc`);
+  const GITIGNORE_PATH = path.join(process.cwd(), ".gitignore");
 
   clear();
 
@@ -34,8 +35,18 @@ const init = (argv) => {
   fs.writeFileSync(ENCRYPTION_KEY_PATH, newKey);
   
   console.log(chalk.green(`Writing encryption key to: ${ENCRYPTION_KEY_PATH}`));
-  
-  console.log(chalk.red(`WARNING: DO NOT CHECK THE .KEY FILE INTO VERSION CONTROL. PLEASE ADD TO GITIGNORE OTHERWISE YOUR KEYS CAN BE DECRYPTED AND EXPOSED.`));
+
+  // Add key file to .gitignore
+  if (fs.existsSync(GITIGNORE_PATH)) {
+    fs.appendFileSync(
+      GITIGNORE_PATH,
+      `\n\n# Cooler-Env secret key\n${argv.p ? argv.p : "config"}/${argv.e}.key\n`
+    );
+
+    console.log(chalk.green("Appending .key file to .gitignore"));
+  } else {
+    console.log(chalk.red("WARNING: DO NOT CHECK THE .KEY FILE INTO VERSION CONTROL OTHERWISE YOUR KEYS CAN BE DECRYPTED AND EXPOSED."));
+  }
 
   fs.writeFileSync(ENCRYPTED_FILE_PATH, "{}");
 
