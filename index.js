@@ -10,8 +10,6 @@ const edit = require("./commands/edit");
 const add = require("./commands/add");
 const deleteCmd = require("./commands/delete");
 
-const loadEnv = require("./loadEnv");
-
 clear();
 
 console.log(
@@ -38,7 +36,3 @@ if (availableCommands[argv._[0]]) {
 } else {
   console.log(chalk.red("Please enter a valid command"));
 }
-
-module.exports = {
-  loadEnv
-};
