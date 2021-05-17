@@ -3,13 +3,21 @@ const fs = require("fs");
 const Cryptify = require("cryptify");
 
 const loadEnv = (env, configPath = null) => {
-  const CONFIG_DIR_PATH = path.join(process.cwd(), configPath ? configPath : "config");
+  const CONFIG_DIR_PATH = path.join(
+    process.cwd(),
+    configPath ? configPath : "config"
+  );
   const ENCRYPTION_KEY_PATH = path.join(CONFIG_DIR_PATH, `${env}.key`);
   const ENCRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${env}.yml.enc`);
-  const DECRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${env}-d.yml.enc.tmp`);
+  const DECRYPTED_FILE_PATH = path.join(
+    CONFIG_DIR_PATH,
+    `${env}-d.yml.enc.tmp`
+  );
 
   if (!env) {
-    throw new Error("loadEnv requires a valid environment name to be passed as an argument");
+    throw new Error(
+      "loadEnv requires a valid environment name to be passed as an argument"
+    );
   }
 
   if (!fs.existsSync(ENCRYPTION_KEY_PATH)) {
@@ -22,15 +30,18 @@ const loadEnv = (env, configPath = null) => {
 
   fs.copyFileSync(ENCRYPTED_FILE_PATH, DECRYPTED_FILE_PATH);
 
-  const secretKeyData = fs
-  .readFileSync(ENCRYPTION_KEY_PATH)
-  .toString();
+  const secretKeyData = fs.readFileSync(ENCRYPTION_KEY_PATH).toString();
 
-  const decryptedFileInstance = new Cryptify(DECRYPTED_FILE_PATH, secretKeyData, null, null, true, true);
+  const decryptedFileInstance = new Cryptify(
+    DECRYPTED_FILE_PATH,
+    secretKeyData,
+    null,
+    null,
+    true,
+    true
+  );
 
-  return decryptedFileInstance
-  .decrypt()
-  .then((files) => {
+  return decryptedFileInstance.decrypt().then((files) => {
     fs.unlinkSync(DECRYPTED_FILE_PATH);
 
     const parsedObj = JSON.parse(files[0]);
@@ -39,6 +50,6 @@ const loadEnv = (env, configPath = null) => {
       process.env[key] = parsedObj[key];
     });
   });
-}
+};
 
 module.exports = loadEnv;

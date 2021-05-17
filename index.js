@@ -13,9 +13,7 @@ const deleteCmd = require("./commands/delete");
 clear();
 
 console.log(
-  chalk.green(
-    figlet.textSync("Cooler Env", { horizontalLayout: "full" })
-  )
+  chalk.green(figlet.textSync("Cooler Env", { horizontalLayout: "full" }))
 );
 
 const argv = minimist(process.argv.slice(2));
@@ -25,10 +23,10 @@ if (argv._.length === 0) {
 }
 
 const availableCommands = {
-  "init": init,
-  "edit": edit,
-  "add": add,
-  "delete": deleteCmd
+  init: init,
+  edit: edit,
+  add: add,
+  delete: deleteCmd
 };
 
 if (availableCommands[argv._[0]]) {
