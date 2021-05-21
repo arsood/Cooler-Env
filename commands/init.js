@@ -65,9 +65,9 @@ const init = (argv) => {
     true
   );
 
-  encryptedFileInstance.encrypt();
-
   console.log("Init complete! 💯");
+
+  return encryptedFileInstance.encrypt();
 };
 
 module.exports = init;
