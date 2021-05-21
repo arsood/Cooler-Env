@@ -39,7 +39,7 @@ const add = (argv) => {
     );
   }
 
-  inquirer
+  return inquirer
     .prompt([
       {
         name: "keyName",

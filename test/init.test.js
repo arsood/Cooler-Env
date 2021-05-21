@@ -6,7 +6,7 @@ const expect = require("chai").expect;
 const init = require("../commands/init");
 
 describe("Init", () => {
-  it("Should create a key file and a .enc file after init", () => {
+  it("Should create a key file and a .enc file after init", (done) => {
     init({
       p: "test_dir",
       e: "test",
@@ -22,6 +22,8 @@ describe("Init", () => {
       expect(encFileExists).to.be.true;
 
       rimrafSync(path.join(process.cwd(), "test_dir"));
+
+      done();
     });
   });
 });
