@@ -114,4 +114,4 @@ const add = (argv) => {
     });
 };
 
-module.exports = add;
+export default add;

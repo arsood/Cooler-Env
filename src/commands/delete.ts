@@ -6,7 +6,7 @@ const clear = require("clear");
 const Cryptify = require("cryptify");
 const inquirer = require("inquirer");
 
-const edit = (argv) => {
+const deleteCmd = (argv) => {
   const CONFIG_DIR_PATH = path.join(process.cwd(), argv.p ? argv.p : "config");
   const ENCRYPTION_KEY_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.key`);
   const ENCRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.yml.enc`);
@@ -59,57 +59,51 @@ const edit = (argv) => {
 
     if (Object.keys(parsedObj).length === 0) {
       return console.log(
-        chalk.red("Nothing to edit. Please add some keys first.")
+        chalk.red("Nothing to delete. Please add some keys first.")
       );
     }
 
     inquirer
       .prompt([
         {
-          name: "keyToEdit",
-          type: "list",
-          message: "Which key would you like to edit?",
+          name: "keysToDelete",
+          type: "checkbox",
+          message: "Which key(s) would you like to delete?",
           choices: Object.keys(parsedObj),
         },
       ])
-      .then((listAnswers) => {
-        inquirer
-          .prompt([
-            {
-              name: "keyEditedValue",
-              type: "input",
-              message: "What is the new value of this key?",
-              default: parsedObj[listAnswers.keyToEdit],
-              validate: (value) => {
-                if (value.length) {
-                  return true;
-                }
+      .then((answers) => {
+        const filteredKeys = Object.keys(parsedObj).filter((key) => {
+          if (answers.keysToDelete.includes(key)) {
+            return false;
+          }
 
-                return "Please enter the new value of the key you would like to edit.";
-              },
-            },
-          ])
-          .then((inputAnswers) => {
-            parsedObj[listAnswers.keyToEdit] = inputAnswers.keyEditedValue;
+          return true;
+        });
 
-            const encryptedFileInstance = new Cryptify(
-              ENCRYPTED_FILE_PATH,
-              secretKeyData,
-              null,
-              null,
-              true,
-              true
-            );
+        let newObj = {};
 
-            fs.writeFileSync(ENCRYPTED_FILE_PATH, JSON.stringify(parsedObj));
+        filteredKeys.forEach((key) => {
+          newObj[key] = parsedObj[key];
+        });
 
-            encryptedFileInstance.encrypt();
-          })
-          .then(() => {
-            console.log("Done! 🌟");
-          });
+        const encryptedFileInstance = new Cryptify(
+          ENCRYPTED_FILE_PATH,
+          secretKeyData,
+          null,
+          null,
+          true,
+          true
+        );
+
+        fs.writeFileSync(ENCRYPTED_FILE_PATH, JSON.stringify(newObj));
+
+        encryptedFileInstance.encrypt();
+      })
+      .then(() => {
+        console.log("Done! 🌟");
       });
   });
 };
 
-module.exports = edit;
+export default deleteCmd;
