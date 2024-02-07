@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
-const chalk = require("chalk");
-const minimist = require("minimist");
-const clear = require("clear");
-const figlet = require("figlet");
+import chalk from "chalk";
+import minimist from "minimist";
+import clear from "clear";
+import figlet from "figlet";
+
+import init from "./commands/init";
 
 const init = require("./commands/init");
 const edit = require("./commands/edit");
