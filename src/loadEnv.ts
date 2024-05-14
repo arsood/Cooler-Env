@@ -2,7 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const Cryptify = require("cryptify");
 
-const loadEnv = (env, configPath = null) => {
+const loadEnv = (env: any, configPath = null) => {
   const CONFIG_DIR_PATH = path.join(
     process.cwd(),
     configPath ? configPath : "config"
@@ -41,7 +41,7 @@ const loadEnv = (env, configPath = null) => {
     true
   );
 
-  return decryptedFileInstance.decrypt().then((files) => {
+  return decryptedFileInstance.decrypt().then((files: string[]) => {
     fs.unlinkSync(DECRYPTED_FILE_PATH);
 
     const parsedObj = JSON.parse(files[0]);

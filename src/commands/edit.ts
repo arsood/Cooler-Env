@@ -6,7 +6,7 @@ const clear = require("clear");
 const Cryptify = require("cryptify");
 const inquirer = require("inquirer");
 
-const edit = (argv) => {
+const edit = (argv: any) => {
   const CONFIG_DIR_PATH = path.join(process.cwd(), argv.p ? argv.p : "config");
   const ENCRYPTION_KEY_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.key`);
   const ENCRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.yml.enc`);
@@ -52,7 +52,7 @@ const edit = (argv) => {
     true
   );
 
-  decryptedFileInstance.decrypt().then((files) => {
+  decryptedFileInstance.decrypt().then((files: string[]) => {
     fs.unlinkSync(DECRYPTED_FILE_PATH);
 
     const parsedObj = JSON.parse(files[0]);
@@ -72,7 +72,7 @@ const edit = (argv) => {
           choices: Object.keys(parsedObj),
         },
       ])
-      .then((listAnswers) => {
+      .then((listAnswers: any) => {
         inquirer
           .prompt([
             {
@@ -80,7 +80,7 @@ const edit = (argv) => {
               type: "input",
               message: "What is the new value of this key?",
               default: parsedObj[listAnswers.keyToEdit],
-              validate: (value) => {
+              validate: (value: string) => {
                 if (value.length) {
                   return true;
                 }
@@ -89,7 +89,7 @@ const edit = (argv) => {
               },
             },
           ])
-          .then((inputAnswers) => {
+          .then((inputAnswers: any) => {
             parsedObj[listAnswers.keyToEdit] = inputAnswers.keyEditedValue;
 
             const encryptedFileInstance = new Cryptify(

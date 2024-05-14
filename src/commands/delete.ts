@@ -6,7 +6,7 @@ const clear = require("clear");
 const Cryptify = require("cryptify");
 const inquirer = require("inquirer");
 
-const deleteCmd = (argv) => {
+const deleteCmd = (argv: any) => {
   const CONFIG_DIR_PATH = path.join(process.cwd(), argv.p ? argv.p : "config");
   const ENCRYPTION_KEY_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.key`);
   const ENCRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.yml.enc`);
@@ -52,7 +52,7 @@ const deleteCmd = (argv) => {
     true
   );
 
-  decryptedFileInstance.decrypt().then((files) => {
+  decryptedFileInstance.decrypt().then((files: string[]) => {
     fs.unlinkSync(DECRYPTED_FILE_PATH);
 
     const parsedObj = JSON.parse(files[0]);
@@ -72,7 +72,7 @@ const deleteCmd = (argv) => {
           choices: Object.keys(parsedObj),
         },
       ])
-      .then((answers) => {
+      .then((answers: any) => {
         const filteredKeys = Object.keys(parsedObj).filter((key) => {
           if (answers.keysToDelete.includes(key)) {
             return false;
@@ -81,7 +81,7 @@ const deleteCmd = (argv) => {
           return true;
         });
 
-        let newObj = {};
+        let newObj = {} as { [key: string]: string };
 
         filteredKeys.forEach((key) => {
           newObj[key] = parsedObj[key];
