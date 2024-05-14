@@ -26,8 +26,8 @@ const availableCommands = {
   init: init,
   edit: edit,
   add: add,
-  delete: deleteCmd
-};
+  delete: deleteCmd,
+} as { [key: string]: any };
 
 if (availableCommands[argv._[0]]) {
   availableCommands[argv._[0]](argv);
