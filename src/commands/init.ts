@@ -7,7 +7,7 @@ import clear from "clear";
 import figlet from "figlet";
 
 type ArgumentType = {
-  [key: string]: string
+  [key: string]: string;
 };
 
 const init = (argv: ArgumentType) => {
@@ -63,8 +63,8 @@ const init = (argv: ArgumentType) => {
   const encryptedFileInstance = new Cryptify(
     ENCRYPTED_FILE_PATH,
     newKey,
-    null,
-    null,
+    undefined,
+    undefined,
     true,
     true
   );

@@ -110,6 +110,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/clear@npm:^0.1.4":
+  version: 0.1.4
+  resolution: "@types/clear@npm:0.1.4"
+  checksum: 05401e2c10e27cdef6f0db971ebc746f3881249c10433b04c059e989a8004e6f6353eadc4a0ba9a6d85bf8a227782bd1d93eb838b03b811c96f9aebe6233dbe3
+  languageName: node
+  linkType: hard
+
+"@types/figlet@npm:^1.5.8":
+  version: 1.5.8
+  resolution: "@types/figlet@npm:1.5.8"
+  checksum: b61385ca7d7c7716a7ee63d421b24d851fbe9ea43e67a746e0f90212fa6502fe9e34bf5b5e6761c363b828cd87eb953fc55b2f48bfe2801c309e0077230474c3
+  languageName: node
+  linkType: hard
+
 "@types/json5@npm:^0.0.29":
   version: 0.0.29
   resolution: "@types/json5@npm:0.0.29"
@@ -665,6 +679,8 @@ __metadata:
   resolution: "cooler-env@workspace:."
   dependencies:
     "@types/chalk": "npm:^2.2.0"
+    "@types/clear": "npm:^0.1.4"
+    "@types/figlet": "npm:^1.5.8"
     "@types/node": "npm:^20.11.16"
     chai: "npm:^4.3.4"
     chalk: "npm:^5.3.0"

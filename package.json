@@ -24,6 +24,8 @@
   "bin": "./index.js",
   "devDependencies": {
     "@types/chalk": "^2.2.0",
+    "@types/clear": "^0.1.4",
+    "@types/figlet": "^1.5.8",
     "@types/node": "^20.11.16",
     "chai": "^4.3.4",
     "eslint": "^7.26.0",
