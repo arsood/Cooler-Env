@@ -6,11 +6,12 @@ npm-debug.log
 yarn-error.log
 
 # Yarn
-.yarn/*
+.yarn
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+.yarnrc.yml
 
 .pnp*

@@ -33,5 +33,6 @@
     "mocha": "^8.4.0",
     "prettier": "^2.3.0",
     "rimraf": "^3.0.2"
-  }
+  },
+  "packageManager": "yarn@4.2.2"
 }
