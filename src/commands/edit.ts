@@ -1,10 +1,10 @@
-const path = require("path");
-const chalk = require("chalk");
-const figlet = require("figlet");
-const fs = require("fs");
-const clear = require("clear");
-const Cryptify = require("cryptify");
-const inquirer = require("inquirer");
+import inquirer from "inquirer";
+import fs from "fs";
+import path from "path";
+import clear from "clear";
+import chalk from "chalk";
+import figlet from "figlet";
+import Cryptify from "cryptify";
 
 const edit = (argv: any) => {
   const CONFIG_DIR_PATH = path.join(process.cwd(), argv.p ? argv.p : "config");
@@ -46,14 +46,16 @@ const edit = (argv: any) => {
   const decryptedFileInstance = new Cryptify(
     DECRYPTED_FILE_PATH,
     secretKeyData,
-    null,
-    null,
+    undefined,
+    undefined,
     true,
     true
   );
 
-  decryptedFileInstance.decrypt().then((files: string[]) => {
+  decryptedFileInstance.decrypt().then((files) => {
     fs.unlinkSync(DECRYPTED_FILE_PATH);
+
+    if (!files) return;
 
     const parsedObj = JSON.parse(files[0]);
 
@@ -95,8 +97,8 @@ const edit = (argv: any) => {
             const encryptedFileInstance = new Cryptify(
               ENCRYPTED_FILE_PATH,
               secretKeyData,
-              null,
-              null,
+              undefined,
+              undefined,
               true,
               true
             );
