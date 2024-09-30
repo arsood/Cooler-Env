@@ -38,3 +38,5 @@ if (availableCommands[argv._[0]]) {
   errorText = "Please enter a valid command";
   console.log(chalk.red(errorText));
 }
+
+export * from "./loadEnv";

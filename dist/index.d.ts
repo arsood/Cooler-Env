@@ -1,3 +1,3 @@
 #!/usr/bin/env node
-export {};
+export * from "./loadEnv";
 //# sourceMappingURL=index.d.ts.map
