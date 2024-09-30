@@ -10,7 +10,8 @@
     "url": "https://github.com/arsood/Cooler-Env.git"
   },
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "build": "tsc"
   },
   "dependencies": {
     "chalk": "^5.3.0",
