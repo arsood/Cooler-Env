@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs";
 import Cryptify from "cryptify";
 
-export const loadEnv = (env: any, configPath = null) => {
+const loadEnv = (env: any, configPath = null) => {
   const CONFIG_DIR_PATH = path.join(
     process.cwd(),
     configPath ? configPath : "config"
@@ -53,3 +53,5 @@ export const loadEnv = (env: any, configPath = null) => {
     });
   });
 };
+
+export default loadEnv;
