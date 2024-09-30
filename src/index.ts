@@ -20,6 +20,7 @@ const argv = minimist(process.argv.slice(2));
 
 if (argv._.length === 0) {
   console.log(chalk.red("Please enter a valid command"));
+  process.exit(0);
 }
 
 const availableCommands = {
@@ -33,4 +34,5 @@ if (availableCommands[argv._[0]]) {
   availableCommands[argv._[0]](argv);
 } else {
   console.log(chalk.red("Please enter a valid command"));
+  process.exit(0);
 }

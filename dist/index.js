@@ -17,6 +17,7 @@ console.log(chalk_1.default.green(figlet_1.default.textSync("Cooler Env", { hori
 const argv = (0, minimist_1.default)(process.argv.slice(2));
 if (argv._.length === 0) {
     console.log(chalk_1.default.red("Please enter a valid command"));
+    process.exit(0);
 }
 const availableCommands = {
     init: init_1.default,
@@ -29,4 +30,5 @@ if (availableCommands[argv._[0]]) {
 }
 else {
     console.log(chalk_1.default.red("Please enter a valid command"));
+    process.exit(0);
 }
