@@ -1,6 +1,6 @@
 {
   "name": "cooler-env",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "CLI + module utility to help you manage your environment variables better. Inspired by Ruby on Rails credentials.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -20,7 +20,7 @@
     "clear": "^0.1.0",
     "cryptify": "^4.1.2",
     "figlet": "^1.7.0",
-    "inquirer": "^9.2.14",
+    "inquirer": "^11.1.0",
     "minimist": "^1.2.8",
     "typescript": "^5.3.3"
   },
