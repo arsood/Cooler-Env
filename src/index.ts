@@ -12,6 +12,8 @@ import deleteCmd from "./commands/delete";
 
 clear();
 
+let errorText = null;
+
 console.log(
   chalk.green(figlet.textSync("Cooler Env", { horizontalLayout: "full" }))
 );
@@ -19,8 +21,8 @@ console.log(
 const argv = minimist(process.argv.slice(2));
 
 if (argv._.length === 0) {
-  console.log(chalk.red("Please enter a valid command"));
-  process.exit(0);
+  errorText = "Please enter a valid command";
+  console.log(chalk.red(errorText));
 }
 
 const availableCommands = {
@@ -32,7 +34,7 @@ const availableCommands = {
 
 if (availableCommands[argv._[0]]) {
   availableCommands[argv._[0]](argv);
-} else {
-  console.log(chalk.red("Please enter a valid command"));
-  process.exit(0);
+} else if (!errorText) {
+  errorText = "Please enter a valid command";
+  console.log(chalk.red(errorText));
 }

@@ -13,11 +13,12 @@ const edit_1 = __importDefault(require("./commands/edit"));
 const add_1 = __importDefault(require("./commands/add"));
 const delete_1 = __importDefault(require("./commands/delete"));
 (0, clear_1.default)();
+let errorText = null;
 console.log(chalk_1.default.green(figlet_1.default.textSync("Cooler Env", { horizontalLayout: "full" })));
 const argv = (0, minimist_1.default)(process.argv.slice(2));
 if (argv._.length === 0) {
-    console.log(chalk_1.default.red("Please enter a valid command"));
-    process.exit(0);
+    errorText = "Please enter a valid command";
+    console.log(chalk_1.default.red(errorText));
 }
 const availableCommands = {
     init: init_1.default,
@@ -28,7 +29,7 @@ const availableCommands = {
 if (availableCommands[argv._[0]]) {
     availableCommands[argv._[0]](argv);
 }
-else {
-    console.log(chalk_1.default.red("Please enter a valid command"));
-    process.exit(0);
+else if (!errorText) {
+    errorText = "Please enter a valid command";
+    console.log(chalk_1.default.red(errorText));
 }
