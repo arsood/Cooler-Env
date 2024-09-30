@@ -1,12 +1,12 @@
-const path = require("path");
-const chalk = require("chalk");
-const figlet = require("figlet");
-const fs = require("fs");
-const clear = require("clear");
-const Cryptify = require("cryptify");
-const inquirer = require("inquirer");
+import inquirer from "inquirer";
+import fs from "fs";
+import path from "path";
+import clear from "clear";
+import chalk from "chalk";
+import figlet from "figlet";
+import Cryptify from "cryptify";
 
-const deleteCmd = (argv) => {
+const deleteCmd = (argv: any) => {
   const CONFIG_DIR_PATH = path.join(process.cwd(), argv.p ? argv.p : "config");
   const ENCRYPTION_KEY_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.key`);
   const ENCRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.yml.enc`);
@@ -46,14 +46,16 @@ const deleteCmd = (argv) => {
   const decryptedFileInstance = new Cryptify(
     DECRYPTED_FILE_PATH,
     secretKeyData,
-    null,
-    null,
+    undefined,
+    undefined,
     true,
     true
   );
 
   decryptedFileInstance.decrypt().then((files) => {
     fs.unlinkSync(DECRYPTED_FILE_PATH);
+
+    if (!files) return;
 
     const parsedObj = JSON.parse(files[0]);
 
@@ -72,7 +74,7 @@ const deleteCmd = (argv) => {
           choices: Object.keys(parsedObj),
         },
       ])
-      .then((answers) => {
+      .then((answers: any) => {
         const filteredKeys = Object.keys(parsedObj).filter((key) => {
           if (answers.keysToDelete.includes(key)) {
             return false;
@@ -81,7 +83,7 @@ const deleteCmd = (argv) => {
           return true;
         });
 
-        let newObj = {};
+        let newObj = {} as { [key: string]: string };
 
         filteredKeys.forEach((key) => {
           newObj[key] = parsedObj[key];
@@ -90,8 +92,8 @@ const deleteCmd = (argv) => {
         const encryptedFileInstance = new Cryptify(
           ENCRYPTED_FILE_PATH,
           secretKeyData,
-          null,
-          null,
+          undefined,
+          undefined,
           true,
           true
         );
@@ -106,4 +108,4 @@ const deleteCmd = (argv) => {
   });
 };
 
-module.exports = deleteCmd;
+export default deleteCmd;

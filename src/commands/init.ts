@@ -1,12 +1,16 @@
-const fs = require("fs");
-const path = require("path");
-const chalk = require("chalk");
-const crypto = require("crypto");
-const Cryptify = require("cryptify");
-const clear = require("clear");
-const figlet = require("figlet");
+import fs from "fs";
+import path from "path";
+import chalk from "chalk";
+import crypto from "crypto";
+import Cryptify from "cryptify";
+import clear from "clear";
+import figlet from "figlet";
 
-const init = (argv) => {
+type ArgumentType = {
+  [key: string]: string;
+};
+
+const init = (argv: ArgumentType) => {
   const CONFIG_DIR_PATH = path.join(process.cwd(), argv.p ? argv.p : "config");
   const ENCRYPTION_KEY_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.key`);
   const ENCRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.yml.enc`);
@@ -59,8 +63,8 @@ const init = (argv) => {
   const encryptedFileInstance = new Cryptify(
     ENCRYPTED_FILE_PATH,
     newKey,
-    null,
-    null,
+    undefined,
+    undefined,
     true,
     true
   );
@@ -70,4 +74,4 @@ const init = (argv) => {
   return encryptedFileInstance.encrypt();
 };
 
-module.exports = init;
+export default init;

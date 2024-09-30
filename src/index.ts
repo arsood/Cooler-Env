@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
-const chalk = require("chalk");
-const minimist = require("minimist");
-const clear = require("clear");
-const figlet = require("figlet");
+import chalk from "chalk";
+import minimist from "minimist";
+import clear from "clear";
+import figlet from "figlet";
 
-const init = require("./commands/init");
-const edit = require("./commands/edit");
-const add = require("./commands/add");
-const deleteCmd = require("./commands/delete");
+import init from "./commands/init";
+import edit from "./commands/edit";
+import add from "./commands/add";
+import deleteCmd from "./commands/delete";
 
 clear();
 
@@ -19,15 +19,15 @@ console.log(
 const argv = minimist(process.argv.slice(2));
 
 if (argv._.length === 0) {
-  return console.log(chalk.red("Please enter a valid command"));
+  console.log(chalk.red("Please enter a valid command"));
 }
 
 const availableCommands = {
   init: init,
   edit: edit,
   add: add,
-  delete: deleteCmd
-};
+  delete: deleteCmd,
+} as { [key: string]: any };
 
 if (availableCommands[argv._[0]]) {
   availableCommands[argv._[0]](argv);

@@ -1,12 +1,12 @@
-const path = require("path");
-const chalk = require("chalk");
-const figlet = require("figlet");
-const fs = require("fs");
-const clear = require("clear");
-const Cryptify = require("cryptify");
-const inquirer = require("inquirer");
+import inquirer from "inquirer";
+import fs from "fs";
+import path from "path";
+import clear from "clear";
+import chalk from "chalk";
+import figlet from "figlet";
+import Cryptify from "cryptify";
 
-const edit = (argv) => {
+const edit = (argv: any) => {
   const CONFIG_DIR_PATH = path.join(process.cwd(), argv.p ? argv.p : "config");
   const ENCRYPTION_KEY_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.key`);
   const ENCRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.yml.enc`);
@@ -46,14 +46,16 @@ const edit = (argv) => {
   const decryptedFileInstance = new Cryptify(
     DECRYPTED_FILE_PATH,
     secretKeyData,
-    null,
-    null,
+    undefined,
+    undefined,
     true,
     true
   );
 
   decryptedFileInstance.decrypt().then((files) => {
     fs.unlinkSync(DECRYPTED_FILE_PATH);
+
+    if (!files) return;
 
     const parsedObj = JSON.parse(files[0]);
 
@@ -72,7 +74,7 @@ const edit = (argv) => {
           choices: Object.keys(parsedObj),
         },
       ])
-      .then((listAnswers) => {
+      .then((listAnswers: any) => {
         inquirer
           .prompt([
             {
@@ -80,7 +82,7 @@ const edit = (argv) => {
               type: "input",
               message: "What is the new value of this key?",
               default: parsedObj[listAnswers.keyToEdit],
-              validate: (value) => {
+              validate: (value: string) => {
                 if (value.length) {
                   return true;
                 }
@@ -89,14 +91,14 @@ const edit = (argv) => {
               },
             },
           ])
-          .then((inputAnswers) => {
+          .then((inputAnswers: any) => {
             parsedObj[listAnswers.keyToEdit] = inputAnswers.keyEditedValue;
 
             const encryptedFileInstance = new Cryptify(
               ENCRYPTED_FILE_PATH,
               secretKeyData,
-              null,
-              null,
+              undefined,
+              undefined,
               true,
               true
             );
@@ -112,4 +114,4 @@ const edit = (argv) => {
   });
 };
 
-module.exports = edit;
+export default edit;

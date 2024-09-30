@@ -1,12 +1,12 @@
-const inquirer = require("inquirer");
-const fs = require("fs");
-const path = require("path");
-const clear = require("clear");
-const chalk = require("chalk");
-const figlet = require("figlet");
-const Cryptify = require("cryptify");
+import inquirer from "inquirer";
+import fs from "fs";
+import path from "path";
+import clear from "clear";
+import chalk from "chalk";
+import figlet from "figlet";
+import Cryptify from "cryptify";
 
-const add = (argv) => {
+const add = (argv: any) => {
   const CONFIG_DIR_PATH = path.join(process.cwd(), argv.p ? argv.p : "config");
   const ENCRYPTION_KEY_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.key`);
   const ENCRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.yml.enc`);
@@ -45,7 +45,7 @@ const add = (argv) => {
         name: "keyName",
         type: "input",
         message: "What is the name of the key you would like to add?",
-        validate: (value) => {
+        validate: (value: string) => {
           if (value.length) {
             return true;
           }
@@ -57,7 +57,7 @@ const add = (argv) => {
         name: "keyValue",
         type: "input",
         message: "What is the value of the key you would like to add?",
-        validate: (value) => {
+        validate: (value: string) => {
           if (value.length) {
             return true;
           }
@@ -66,7 +66,7 @@ const add = (argv) => {
         },
       },
     ])
-    .then((answers) => {
+    .then((answers: any) => {
       fs.copyFileSync(ENCRYPTED_FILE_PATH, DECRYPTED_FILE_PATH);
 
       const secretKeyData = fs.readFileSync(ENCRYPTION_KEY_PATH).toString();
@@ -74,8 +74,8 @@ const add = (argv) => {
       const decryptedFileInstance = new Cryptify(
         DECRYPTED_FILE_PATH,
         secretKeyData,
-        null,
-        null,
+        undefined,
+        undefined,
         true,
         true
       );
@@ -84,6 +84,8 @@ const add = (argv) => {
         .decrypt()
         .then((files) => {
           fs.unlinkSync(DECRYPTED_FILE_PATH);
+
+          if (!files) return;
 
           const parsedObj = JSON.parse(files[0]);
 
@@ -100,8 +102,8 @@ const add = (argv) => {
           const encryptedFileInstance = new Cryptify(
             ENCRYPTED_FILE_PATH,
             secretKeyData,
-            null,
-            null,
+            undefined,
+            undefined,
             true,
             true
           );
@@ -114,4 +116,4 @@ const add = (argv) => {
     });
 };
 
-module.exports = add;
+export default add;
