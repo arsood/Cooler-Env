@@ -2,8 +2,9 @@
   "name": "cooler-env",
   "version": "2.0.1",
   "description": "CLI + module utility to help you manage your environment variables better. Inspired by Ruby on Rails credentials.",
-  "main": "./dist/src/index.js",
-  "types": "./dist/src/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": "./dist/index.js",
   "author": "Arun Sood",
   "license": "MIT",
   "repository": {
@@ -23,7 +24,6 @@
     "minimist": "^1.2.8",
     "typescript": "^5.3.3"
   },
-  "bin": "./index.js",
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.4",

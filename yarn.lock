@@ -2690,7 +2690,7 @@ __metadata:
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.3.3"
   bin:
-    cooler-env: ./index.js
+    cooler-env: ./dist/index.js
   languageName: unknown
   linkType: soft
 
