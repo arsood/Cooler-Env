@@ -6,7 +6,7 @@ import chalk from "chalk";
 import figlet from "figlet";
 import Cryptify from "cryptify";
 
-const edit = (argv: any) => {
+const edit = async (argv: any) => {
   const CONFIG_DIR_PATH = path.join(process.cwd(), argv.p ? argv.p : "config");
   const ENCRYPTION_KEY_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.key`);
   const ENCRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.yml.enc`);
@@ -52,66 +52,65 @@ const edit = (argv: any) => {
     true
   );
 
-  decryptedFileInstance.decrypt().then((files) => {
-    fs.unlinkSync(DECRYPTED_FILE_PATH);
+  const files = await decryptedFileInstance.decrypt();
 
-    if (!files) return;
+  fs.unlinkSync(DECRYPTED_FILE_PATH);
 
-    const parsedObj = JSON.parse(files[0]);
+  if (!files) return;
 
-    if (Object.keys(parsedObj).length === 0) {
-      return console.log(
-        chalk.red("Nothing to edit. Please add some keys first.")
-      );
-    }
+  const parsedObj = JSON.parse(files[0]);
 
-    inquirer
-      .prompt([
-        {
-          name: "keyToEdit",
-          type: "list",
-          message: "Which key would you like to edit?",
-          choices: Object.keys(parsedObj),
+  if (Object.keys(parsedObj).length === 0) {
+    return console.log(
+      chalk.red("Nothing to edit. Please add some keys first.")
+    );
+  }
+
+  try {
+    const listAnswers = await inquirer.prompt([
+      {
+        name: "keyToEdit",
+        type: "list",
+        message: "Which key would you like to edit?",
+        choices: Object.keys(parsedObj),
+      },
+    ]);
+
+    const inputAnswers = await inquirer.prompt([
+      {
+        name: "keyEditedValue",
+        type: "input",
+        message: "What is the new value of this key?",
+        default: parsedObj[listAnswers.keyToEdit],
+        validate: (value: string) => {
+          if (value.length) {
+            return true;
+          }
+
+          return "Please enter the new value of the key you would like to edit.";
         },
-      ])
-      .then((listAnswers: any) => {
-        inquirer
-          .prompt([
-            {
-              name: "keyEditedValue",
-              type: "input",
-              message: "What is the new value of this key?",
-              default: parsedObj[listAnswers.keyToEdit],
-              validate: (value: string) => {
-                if (value.length) {
-                  return true;
-                }
+      },
+    ]);
 
-                return "Please enter the new value of the key you would like to edit.";
-              },
-            },
-          ])
-          .then((inputAnswers: any) => {
-            parsedObj[listAnswers.keyToEdit] = inputAnswers.keyEditedValue;
+    parsedObj[listAnswers.keyToEdit] = inputAnswers.keyEditedValue;
 
-            const encryptedFileInstance = new Cryptify(
-              ENCRYPTED_FILE_PATH,
-              secretKeyData,
-              undefined,
-              undefined,
-              true,
-              true
-            );
+    const encryptedFileInstance = new Cryptify(
+      ENCRYPTED_FILE_PATH,
+      secretKeyData,
+      undefined,
+      undefined,
+      true,
+      true
+    );
 
-            fs.writeFileSync(ENCRYPTED_FILE_PATH, JSON.stringify(parsedObj));
+    fs.writeFileSync(ENCRYPTED_FILE_PATH, JSON.stringify(parsedObj));
 
-            encryptedFileInstance.encrypt();
-          })
-          .then(() => {
-            console.log("Done! 🌟");
-          });
-      });
-  });
+    await encryptedFileInstance.encrypt();
+
+    console.log("Done! 🌟");
+  } catch (e) {
+    console.log("🚫 Cooler-Env 🚫");
+  }
 };
 
 export default edit;
