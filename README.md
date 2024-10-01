@@ -6,16 +6,18 @@ The point of Cooler-Env is to drastically reduce the amount of time a sensitive 
 
 ## Installation
 
-Cooler-Env is a CLI utility and a module for use in your project. To install the CLI this can be done globally:
+Cooler-Env is a CLI utility and a module for use in your project.
+
+NPM
 
 ```
-npm install cooler-env -g
+npm install cooler-env
 ```
 
-The companion module can be installed to your project locally via:
+Yarn
 
 ```
-npm install cooler-env --save
+yarn add cooler-env
 ```
 
 ## Init
@@ -76,17 +78,17 @@ cooler-env delete -e development
 
 ## loadEnv
 
-Cooler-Env comes with a helper function called `loadEnv` that is meant to load all of your environment variables into `process.env` and return a promise when complete. You will use this function in your application's code before using any of the environment variables.
+Cooler-Env comes with a helper function called `loadEnv` that is meant to load all of your environment variables into `process.env` and return a promise. You will use this function in your application's code before using any of the environment variables.
 
 This function takes two arguments: the first is your application's environment (usually passing `process.env.NODE_ENV`), and the second is optionally adding the directory path you want to use for your encryption key and encrypted files. This will default to "config".
 
 Sample usage:
 
 ```javascript
-const loadEnv = require("cooler-env/loadEnv");
+import { loadEnv } from "cooler-env/dist/loadEnv";
 
-loadEnv(process.env.NODE_ENV)
-.then(() => {
-  // All variables loaded and accessible in process.env!
-});
+// Example IIFE async function
+(async () => {
+  await loadEnv(process.env.NODE_ENV);
+})();
 ```
