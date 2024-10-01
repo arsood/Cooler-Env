@@ -16,16 +16,20 @@ export const loadEnv = async (env: any, configPath = null) => {
 
   if (!env) {
     throw new Error(
-      "loadEnv requires a valid environment name to be passed as an argument"
+      "Cooler-Env: loadEnv requires a valid environment name to be passed as an argument"
     );
   }
 
   if (!fs.existsSync(ENCRYPTION_KEY_PATH)) {
-    throw new Error(`Encryption key not found for environment "${env}"`);
+    throw new Error(
+      `Cooler-Env: Encryption key not found for environment "${env}"`
+    );
   }
 
   if (!fs.existsSync(ENCRYPTED_FILE_PATH)) {
-    throw new Error(`Encrypted file not found for environment "${env}"`);
+    throw new Error(
+      `Cooler-Env: Encrypted file not found for environment "${env}"`
+    );
   }
 
   fs.copyFileSync(ENCRYPTED_FILE_PATH, DECRYPTED_FILE_PATH);
