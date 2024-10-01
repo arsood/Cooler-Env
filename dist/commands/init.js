@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -10,7 +19,7 @@ const crypto_1 = __importDefault(require("crypto"));
 const cryptify_1 = __importDefault(require("cryptify"));
 const clear_1 = __importDefault(require("clear"));
 const figlet_1 = __importDefault(require("figlet"));
-const init = (argv) => {
+const init = (argv) => __awaiter(void 0, void 0, void 0, function* () {
     const CONFIG_DIR_PATH = path_1.default.join(process.cwd(), argv.p ? argv.p : "config");
     const ENCRYPTION_KEY_PATH = path_1.default.join(CONFIG_DIR_PATH, `${argv.e}.key`);
     const ENCRYPTED_FILE_PATH = path_1.default.join(CONFIG_DIR_PATH, `${argv.e}.yml.enc`);
@@ -38,6 +47,6 @@ const init = (argv) => {
     console.log(chalk_1.default.green(`Writing encrypted file to: ${ENCRYPTED_FILE_PATH}`));
     const encryptedFileInstance = new cryptify_1.default(ENCRYPTED_FILE_PATH, newKey, undefined, undefined, true, true);
     console.log("Init complete! 💯");
-    return encryptedFileInstance.encrypt();
-};
+    return yield encryptedFileInstance.encrypt();
+});
 exports.default = init;
