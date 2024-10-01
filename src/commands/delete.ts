@@ -6,7 +6,7 @@ import chalk from "chalk";
 import figlet from "figlet";
 import Cryptify from "cryptify";
 
-const deleteCmd = (argv: any) => {
+const deleteCmd = async (argv: any) => {
   const CONFIG_DIR_PATH = path.join(process.cwd(), argv.p ? argv.p : "config");
   const ENCRYPTION_KEY_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.key`);
   const ENCRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.yml.enc`);
@@ -52,7 +52,9 @@ const deleteCmd = (argv: any) => {
     true
   );
 
-  decryptedFileInstance.decrypt().then((files) => {
+  try {
+    const files = await decryptedFileInstance.decrypt();
+
     fs.unlinkSync(DECRYPTED_FILE_PATH);
 
     if (!files) return;
@@ -65,47 +67,45 @@ const deleteCmd = (argv: any) => {
       );
     }
 
-    inquirer
-      .prompt([
-        {
-          name: "keysToDelete",
-          type: "checkbox",
-          message: "Which key(s) would you like to delete?",
-          choices: Object.keys(parsedObj),
-        },
-      ])
-      .then((answers: any) => {
-        const filteredKeys = Object.keys(parsedObj).filter((key) => {
-          if (answers.keysToDelete.includes(key)) {
-            return false;
-          }
+    const answers = await inquirer.prompt([
+      {
+        name: "keysToDelete",
+        type: "checkbox",
+        message: "Which key(s) would you like to delete?",
+        choices: Object.keys(parsedObj),
+      },
+    ]);
+    const filteredKeys = Object.keys(parsedObj).filter((key) => {
+      if (answers.keysToDelete.includes(key)) {
+        return false;
+      }
 
-          return true;
-        });
+      return true;
+    });
 
-        let newObj = {} as { [key: string]: string };
+    let newObj = {} as { [key: string]: string };
 
-        filteredKeys.forEach((key) => {
-          newObj[key] = parsedObj[key];
-        });
+    filteredKeys.forEach((key) => {
+      newObj[key] = parsedObj[key];
+    });
 
-        const encryptedFileInstance = new Cryptify(
-          ENCRYPTED_FILE_PATH,
-          secretKeyData,
-          undefined,
-          undefined,
-          true,
-          true
-        );
+    const encryptedFileInstance = new Cryptify(
+      ENCRYPTED_FILE_PATH,
+      secretKeyData,
+      undefined,
+      undefined,
+      true,
+      true
+    );
 
-        fs.writeFileSync(ENCRYPTED_FILE_PATH, JSON.stringify(newObj));
+    fs.writeFileSync(ENCRYPTED_FILE_PATH, JSON.stringify(newObj));
 
-        encryptedFileInstance.encrypt();
-      })
-      .then(() => {
-        console.log("Done! 🌟");
-      });
-  });
+    await encryptedFileInstance.encrypt();
+
+    console.log("Done! 🌟");
+  } catch (e) {
+    console.log("🚫 Cooler-Env 🚫");
+  }
 };
 
 export default deleteCmd;

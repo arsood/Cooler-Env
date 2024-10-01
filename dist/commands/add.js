@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -10,7 +19,7 @@ const clear_1 = __importDefault(require("clear"));
 const chalk_1 = __importDefault(require("chalk"));
 const figlet_1 = __importDefault(require("figlet"));
 const cryptify_1 = __importDefault(require("cryptify"));
-const add = (argv) => {
+const add = (argv) => __awaiter(void 0, void 0, void 0, function* () {
     const CONFIG_DIR_PATH = path_1.default.join(process.cwd(), argv.p ? argv.p : "config");
     const ENCRYPTION_KEY_PATH = path_1.default.join(CONFIG_DIR_PATH, `${argv.e}.key`);
     const ENCRYPTED_FILE_PATH = path_1.default.join(CONFIG_DIR_PATH, `${argv.e}.yml.enc`);
@@ -26,53 +35,50 @@ const add = (argv) => {
     if (!fs_1.default.existsSync(ENCRYPTED_FILE_PATH)) {
         return console.log(chalk_1.default.red(`Encrypted file not found for environment "${argv.e}"`));
     }
-    inquirer_1.default
-        .prompt([
-        {
-            name: "keyName",
-            type: "input",
-            message: "What is the name of the key you would like to add?",
-            validate: (value) => {
-                if (value.length) {
-                    return true;
-                }
-                return "Please enter the name of the key you would like to add.";
+    try {
+        const answers = yield inquirer_1.default.prompt([
+            {
+                name: "keyName",
+                type: "input",
+                message: "What is the name of the key you would like to add?",
+                validate: (value) => {
+                    if (value.length) {
+                        return true;
+                    }
+                    return "Please enter the name of the key you would like to add.";
+                },
             },
-        },
-        {
-            name: "keyValue",
-            type: "input",
-            message: "What is the value of the key you would like to add?",
-            validate: (value) => {
-                if (value.length) {
-                    return true;
-                }
-                return "Please enter the value of the key you would like to add.";
+            {
+                name: "keyValue",
+                type: "input",
+                message: "What is the value of the key you would like to add?",
+                validate: (value) => {
+                    if (value.length) {
+                        return true;
+                    }
+                    return "Please enter the value of the key you would like to add.";
+                },
             },
-        },
-    ])
-        .then((answers) => {
+        ]);
         fs_1.default.copyFileSync(ENCRYPTED_FILE_PATH, DECRYPTED_FILE_PATH);
         const secretKeyData = fs_1.default.readFileSync(ENCRYPTION_KEY_PATH).toString();
         const decryptedFileInstance = new cryptify_1.default(DECRYPTED_FILE_PATH, secretKeyData, undefined, undefined, true, true);
-        decryptedFileInstance
-            .decrypt()
-            .then((files) => {
-            fs_1.default.unlinkSync(DECRYPTED_FILE_PATH);
-            if (!files)
-                return;
-            const parsedObj = JSON.parse(files[0]);
-            if (parsedObj[answers.keyName]) {
-                return console.log(chalk_1.default.red("The key exists already. Try editing instead?"));
-            }
-            parsedObj[answers.keyName] = answers.keyValue;
-            fs_1.default.writeFileSync(ENCRYPTED_FILE_PATH, JSON.stringify(parsedObj));
-            const encryptedFileInstance = new cryptify_1.default(ENCRYPTED_FILE_PATH, secretKeyData, undefined, undefined, true, true);
-            encryptedFileInstance.encrypt();
-        })
-            .then(() => {
-            console.log("Done! 🌟");
-        });
-    });
-};
+        const files = yield decryptedFileInstance.decrypt();
+        fs_1.default.unlinkSync(DECRYPTED_FILE_PATH);
+        if (!files)
+            return;
+        const parsedObj = JSON.parse(files[0]);
+        if (parsedObj[answers.keyName]) {
+            return console.log(chalk_1.default.red("The key exists already. Try editing instead?"));
+        }
+        parsedObj[answers.keyName] = answers.keyValue;
+        fs_1.default.writeFileSync(ENCRYPTED_FILE_PATH, JSON.stringify(parsedObj));
+        const encryptedFileInstance = new cryptify_1.default(ENCRYPTED_FILE_PATH, secretKeyData, undefined, undefined, true, true);
+        yield encryptedFileInstance.encrypt();
+        console.log("Done! 🌟");
+    }
+    catch (e) {
+        console.log("🚫 Cooler-Env 🚫");
+    }
+});
 exports.default = add;
