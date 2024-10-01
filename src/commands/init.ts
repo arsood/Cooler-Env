@@ -10,7 +10,7 @@ type ArgumentType = {
   [key: string]: string;
 };
 
-const init = (argv: ArgumentType) => {
+const init = async (argv: ArgumentType) => {
   const CONFIG_DIR_PATH = path.join(process.cwd(), argv.p ? argv.p : "config");
   const ENCRYPTION_KEY_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.key`);
   const ENCRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.yml.enc`);
@@ -71,7 +71,7 @@ const init = (argv: ArgumentType) => {
 
   console.log("Init complete! 💯");
 
-  return encryptedFileInstance.encrypt();
+  return await encryptedFileInstance.encrypt();
 };
 
 export default init;

@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs";
 import Cryptify from "cryptify";
 
-export const loadEnv = (env: any, configPath = null) => {
+export const loadEnv = async (env: any, configPath = null) => {
   const CONFIG_DIR_PATH = path.join(
     process.cwd(),
     configPath ? configPath : "config"
@@ -41,7 +41,9 @@ export const loadEnv = (env: any, configPath = null) => {
     true
   );
 
-  return decryptedFileInstance.decrypt().then((files) => {
+  try {
+    const files = await decryptedFileInstance.decrypt();
+
     fs.unlinkSync(DECRYPTED_FILE_PATH);
 
     if (!files) return;
@@ -51,5 +53,9 @@ export const loadEnv = (env: any, configPath = null) => {
     Object.keys(parsedObj).forEach((key) => {
       process.env[key] = parsedObj[key];
     });
-  });
+
+    return files;
+  } catch (e) {
+    throw new Error("Cooler-Env: Error loading environment variables");
+  }
 };
