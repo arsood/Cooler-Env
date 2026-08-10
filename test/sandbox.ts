@@ -1,7 +1,6 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { rimrafSync } from "rimraf";
 
 export interface Sandbox {
   dir: string;
@@ -22,7 +21,7 @@ export const makeSandbox = (): Sandbox => {
     dir,
     restore: () => {
       process.chdir(previousCwd);
-      rimrafSync(dir);
+      fs.rmSync(dir, { recursive: true, force: true });
     },
   };
 };
