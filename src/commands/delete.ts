@@ -1,111 +1,45 @@
-import inquirer from "inquirer";
-import fs from "fs";
-import path from "path";
-import clear from "clear";
 import chalk from "chalk";
-import figlet from "figlet";
-import Cryptify from "cryptify";
+import inquirer from "inquirer";
 
-const deleteCmd = async (argv: any) => {
-  const CONFIG_DIR_PATH = path.join(process.cwd(), argv.p ? argv.p : "config");
-  const ENCRYPTION_KEY_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.key`);
-  const ENCRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.yml.enc`);
-  const DECRYPTED_FILE_PATH = path.join(
-    CONFIG_DIR_PATH,
-    `${argv.e}-d.yml.enc.tmp`
-  );
+import { Argv } from "../lib/types";
+import { resolvePaths, requireEnv, configPathOf } from "../lib/paths";
+import { assertInitialized } from "../lib/guards";
+import { readSecrets, writeSecrets } from "../lib/secrets";
+import { CoolerEnvError } from "../lib/errors";
 
-  clear();
+const deleteCmd = async (argv: Argv): Promise<void> => {
+  const env = requireEnv(argv);
+  const paths = resolvePaths(env, configPathOf(argv));
+  assertInitialized(paths, env);
 
-  console.log(
-    chalk.green(figlet.textSync("Cooler Env", { horizontalLayout: "full" }))
-  );
+  const secrets = await readSecrets(paths);
+  const keys = Object.keys(secrets);
 
-  if (!argv.e) {
-    return console.log(
-      chalk.red("Please enter a valid environment with the -e option")
-    );
+  if (keys.length === 0) {
+    throw new CoolerEnvError("Nothing to delete. Add some keys first.");
   }
 
-  if (!fs.existsSync(ENCRYPTION_KEY_PATH)) {
-    return console.log(
-      chalk.red(`Encryption key not found for environment "${argv.e}"`)
-    );
+  const { keysToDelete } = await inquirer.prompt<{ keysToDelete: string[] }>([
+    {
+      name: "keysToDelete",
+      type: "checkbox",
+      message: "Which key(s) would you like to delete?",
+      choices: keys,
+    },
+  ]);
+
+  if (keysToDelete.length === 0) {
+    console.log(chalk.yellow("No keys selected. Nothing changed."));
+    return;
   }
 
-  if (!fs.existsSync(ENCRYPTED_FILE_PATH)) {
-    return console.log(
-      chalk.red(`Encrypted file not found for environment "${argv.e}"`)
-    );
+  for (const key of keysToDelete) {
+    delete secrets[key];
   }
 
-  fs.copyFileSync(ENCRYPTED_FILE_PATH, DECRYPTED_FILE_PATH);
+  await writeSecrets(paths, secrets);
 
-  const secretKeyData = fs.readFileSync(ENCRYPTION_KEY_PATH).toString();
-
-  const decryptedFileInstance = new Cryptify(
-    DECRYPTED_FILE_PATH,
-    secretKeyData,
-    undefined,
-    undefined,
-    true,
-    true
-  );
-
-  try {
-    const files = await decryptedFileInstance.decrypt();
-
-    fs.unlinkSync(DECRYPTED_FILE_PATH);
-
-    if (!files) return;
-
-    const parsedObj = JSON.parse(files[0]);
-
-    if (Object.keys(parsedObj).length === 0) {
-      return console.log(
-        chalk.red("Nothing to delete. Please add some keys first.")
-      );
-    }
-
-    const answers = await inquirer.prompt([
-      {
-        name: "keysToDelete",
-        type: "checkbox",
-        message: "Which key(s) would you like to delete?",
-        choices: Object.keys(parsedObj),
-      },
-    ]);
-    const filteredKeys = Object.keys(parsedObj).filter((key) => {
-      if (answers.keysToDelete.includes(key)) {
-        return false;
-      }
-
-      return true;
-    });
-
-    let newObj = {} as { [key: string]: string };
-
-    filteredKeys.forEach((key) => {
-      newObj[key] = parsedObj[key];
-    });
-
-    const encryptedFileInstance = new Cryptify(
-      ENCRYPTED_FILE_PATH,
-      secretKeyData,
-      undefined,
-      undefined,
-      true,
-      true
-    );
-
-    fs.writeFileSync(ENCRYPTED_FILE_PATH, JSON.stringify(newObj));
-
-    await encryptedFileInstance.encrypt();
-
-    console.log("Done! 🌟");
-  } catch (e) {
-    console.log("🚫 Cooler-Env 🚫");
-  }
+  console.log(chalk.green("Done! 🌟"));
 };
 
 export default deleteCmd;
