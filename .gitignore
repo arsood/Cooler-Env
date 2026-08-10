@@ -9,12 +9,11 @@ yarn-error.log
 dist
 
 # Yarn
-.yarn
+.yarn/*
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
-.yarnrc.yml
 
 .pnp*
