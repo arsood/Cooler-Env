@@ -85,7 +85,7 @@ This function takes two arguments: the first is your application's environment (
 Sample usage:
 
 ```javascript
-import { loadEnv } from "cooler-env/dist/loadEnv";
+import { loadEnv } from "cooler-env";
 
 // Example IIFE async function
 (async () => {

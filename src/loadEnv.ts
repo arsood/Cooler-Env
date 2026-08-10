@@ -1,65 +1,45 @@
-import path from "path";
 import fs from "fs";
-import Cryptify from "cryptify";
 
-export const loadEnv = async (env: any, configPath = null) => {
-  const CONFIG_DIR_PATH = path.join(
-    process.cwd(),
-    configPath ? configPath : "config"
-  );
-  const ENCRYPTION_KEY_PATH = path.join(CONFIG_DIR_PATH, `${env}.key`);
-  const ENCRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${env}.yml.enc`);
-  const DECRYPTED_FILE_PATH = path.join(
-    CONFIG_DIR_PATH,
-    `${env}-d.yml.enc.tmp`
-  );
+import { Secrets } from "./lib/types";
+import { resolvePaths } from "./lib/paths";
+import { readSecrets } from "./lib/secrets";
 
+/**
+ * Decrypt the given environment's secrets, load each into `process.env`, and
+ * return them. Call (and await) this before reading any managed variable.
+ *
+ * @param env        The environment name, e.g. `process.env.NODE_ENV`.
+ * @param configPath Directory holding the key/encrypted files. Defaults to `config`.
+ */
+export const loadEnv = async (
+  env: string,
+  configPath?: string
+): Promise<Secrets> => {
   if (!env) {
     throw new Error(
       "Cooler-Env: loadEnv requires a valid environment name to be passed as an argument"
     );
   }
 
-  if (!fs.existsSync(ENCRYPTION_KEY_PATH)) {
+  const paths = resolvePaths(env, configPath);
+
+  if (!fs.existsSync(paths.keyFile)) {
     throw new Error(
       `Cooler-Env: Encryption key not found for environment "${env}"`
     );
   }
 
-  if (!fs.existsSync(ENCRYPTED_FILE_PATH)) {
+  if (!fs.existsSync(paths.encryptedFile)) {
     throw new Error(
       `Cooler-Env: Encrypted file not found for environment "${env}"`
     );
   }
 
-  fs.copyFileSync(ENCRYPTED_FILE_PATH, DECRYPTED_FILE_PATH);
+  const secrets = await readSecrets(paths);
 
-  const secretKeyData = fs.readFileSync(ENCRYPTION_KEY_PATH).toString();
-
-  const decryptedFileInstance = new Cryptify(
-    DECRYPTED_FILE_PATH,
-    secretKeyData,
-    undefined,
-    undefined,
-    true,
-    true
-  );
-
-  try {
-    const files = await decryptedFileInstance.decrypt();
-
-    fs.unlinkSync(DECRYPTED_FILE_PATH);
-
-    if (!files) return;
-
-    const parsedObj = JSON.parse(files[0]);
-
-    Object.keys(parsedObj).forEach((key) => {
-      process.env[key] = parsedObj[key];
-    });
-
-    return files;
-  } catch (e) {
-    throw new Error("Cooler-Env: Error loading environment variables");
+  for (const [key, value] of Object.entries(secrets)) {
+    process.env[key] = value;
   }
+
+  return secrets;
 };

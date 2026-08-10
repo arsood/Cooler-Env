@@ -1,30 +1,78 @@
 import fs from "fs";
 import path from "path";
-import { rimrafSync } from "rimraf";
 
+jest.mock("inquirer", () => ({
+  __esModule: true,
+  default: { prompt: jest.fn() },
+}));
+
+import inquirer from "inquirer";
 import init from "../src/commands/init";
+import { makeSandbox, Sandbox } from "./sandbox";
 
-describe("Init", () => {
-  it("Should create a key file and a .enc file after init", async () => {
-    try {
-      await init({
-        p: "test_dir",
-        e: "test",
-      });
+const prompt = inquirer.prompt as unknown as jest.Mock;
 
-      const TEST_DIR = path.join(process.cwd(), "test_dir");
+describe("init", () => {
+  let sandbox: Sandbox;
 
-      const dirExists = fs.existsSync(TEST_DIR);
-      const keyFileExists = fs.existsSync(path.join(TEST_DIR, "test.key"));
-      const encFileExists = fs.existsSync(path.join(TEST_DIR, "test.yml.enc"));
+  beforeEach(() => {
+    sandbox = makeSandbox();
+    prompt.mockReset();
+  });
 
-      expect(dirExists).toBe(true);
-      expect(keyFileExists).toBe(true);
-      expect(encFileExists).toBe(true);
+  afterEach(() => sandbox.restore());
 
-      rimrafSync(path.join(process.cwd(), "test_dir"));
-    } catch (e) {
-      console.log(e);
-    }
+  it("creates a key file and an encrypted file", async () => {
+    await init({ _: [], e: "test" });
+
+    const configDir = path.join(sandbox.dir, "config");
+    expect(fs.existsSync(path.join(configDir, "test.key"))).toBe(true);
+    expect(fs.existsSync(path.join(configDir, "test.yml.enc"))).toBe(true);
+  });
+
+  it("honors a custom config path", async () => {
+    await init({ _: [], e: "test", p: "secrets" });
+
+    expect(fs.existsSync(path.join(sandbox.dir, "secrets", "test.key"))).toBe(
+      true
+    );
+  });
+
+  it("creates .gitignore and adds the key exactly once across re-runs", async () => {
+    await init({ _: [], e: "test" });
+    // Second init on an existing env requires confirmation.
+    prompt.mockResolvedValueOnce({ confirmOverwrite: true });
+    await init({ _: [], e: "test" });
+
+    const gitignore = fs.readFileSync(
+      path.join(sandbox.dir, ".gitignore"),
+      "utf8"
+    );
+    const occurrences = gitignore
+      .split(/\r?\n/)
+      .filter((line) => line.trim() === "config/test.key").length;
+
+    expect(occurrences).toBe(1);
+  });
+
+  it("aborts an overwrite when the user declines", async () => {
+    await init({ _: [], e: "test" });
+    const originalKey = fs.readFileSync(
+      path.join(sandbox.dir, "config", "test.key"),
+      "utf8"
+    );
+
+    prompt.mockResolvedValueOnce({ confirmOverwrite: false });
+    await init({ _: [], e: "test" });
+
+    const keyAfter = fs.readFileSync(
+      path.join(sandbox.dir, "config", "test.key"),
+      "utf8"
+    );
+    expect(keyAfter).toBe(originalKey);
+  });
+
+  it("rejects a missing environment name", async () => {
+    await expect(init({ _: [] })).rejects.toThrow(/valid environment/);
   });
 });

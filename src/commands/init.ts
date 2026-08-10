@@ -2,76 +2,80 @@ import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import crypto from "crypto";
-import Cryptify from "cryptify";
-import clear from "clear";
-import figlet from "figlet";
+import inquirer from "inquirer";
 
-type ArgumentType = {
-  [key: string]: string;
+import { Argv } from "../lib/types";
+import {
+  resolvePaths,
+  requireEnv,
+  configPathOf,
+  DEFAULT_CONFIG_DIR,
+} from "../lib/paths";
+import { writeSecrets } from "../lib/secrets";
+
+/** Add the key file to .gitignore, creating the file and de-duplicating. */
+const ensureGitignored = (relativeDir: string, env: string): void => {
+  const gitignorePath = path.join(process.cwd(), ".gitignore");
+  const entry = `${relativeDir}/${env}.key`;
+
+  const existing = fs.existsSync(gitignorePath)
+    ? fs.readFileSync(gitignorePath, "utf8")
+    : "";
+
+  const alreadyIgnored = existing
+    .split(/\r?\n/)
+    .some((line) => line.trim() === entry);
+
+  if (alreadyIgnored) return;
+
+  const prefix = existing.length && !existing.endsWith("\n") ? "\n" : "";
+  fs.appendFileSync(gitignorePath, `${prefix}\n# Cooler-Env secret key\n${entry}\n`);
+
+  console.log(chalk.green(`Added ${entry} to .gitignore`));
 };
 
-const init = async (argv: ArgumentType) => {
-  const CONFIG_DIR_PATH = path.join(process.cwd(), argv.p ? argv.p : "config");
-  const ENCRYPTION_KEY_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.key`);
-  const ENCRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.yml.enc`);
-  const GITIGNORE_PATH = path.join(process.cwd(), ".gitignore");
+const init = async (argv: Argv): Promise<void> => {
+  const env = requireEnv(argv);
+  const relativeDir = configPathOf(argv) ?? DEFAULT_CONFIG_DIR;
+  const paths = resolvePaths(env, configPathOf(argv));
 
-  clear();
+  const alreadyExists =
+    fs.existsSync(paths.keyFile) || fs.existsSync(paths.encryptedFile);
 
-  console.log(
-    chalk.green(figlet.textSync("Cooler Env", { horizontalLayout: "full" }))
-  );
+  if (alreadyExists) {
+    const { confirmOverwrite } = await inquirer.prompt<{
+      confirmOverwrite: boolean;
+    }>([
+      {
+        name: "confirmOverwrite",
+        type: "confirm",
+        default: false,
+        message: chalk.red(
+          `Environment "${env}" already exists. Re-initializing generates a NEW key and ERASES all existing secrets. Continue?`
+        ),
+      },
+    ]);
 
-  if (!argv.e) {
-    return console.log(
-      chalk.red("Please enter a valid environment with the -e option")
-    );
+    if (!confirmOverwrite) {
+      console.log(chalk.yellow("Init cancelled."));
+      return;
+    }
   }
 
-  if (!fs.existsSync(CONFIG_DIR_PATH)) {
-    fs.mkdirSync(CONFIG_DIR_PATH);
+  if (!fs.existsSync(paths.configDir)) {
+    fs.mkdirSync(paths.configDir, { recursive: true });
   }
 
-  const newKey = crypto.randomBytes(16).toString("hex");
+  const newKey = crypto.randomBytes(32).toString("hex");
+  fs.writeFileSync(paths.keyFile, newKey, { mode: 0o600 });
+  console.log(chalk.green(`Wrote encryption key to: ${paths.keyFile}`));
 
-  fs.writeFileSync(ENCRYPTION_KEY_PATH, newKey);
+  ensureGitignored(relativeDir, env);
 
-  console.log(chalk.green(`Writing encryption key to: ${ENCRYPTION_KEY_PATH}`));
-
-  // Add key file to .gitignore
-  if (fs.existsSync(GITIGNORE_PATH)) {
-    fs.appendFileSync(
-      GITIGNORE_PATH,
-      `\n\n# Cooler-Env secret key\n${argv.p ? argv.p : "config"}/${
-        argv.e
-      }.key\n`
-    );
-
-    console.log(chalk.green("Appending .key file to .gitignore"));
-  } else {
-    console.log(
-      chalk.red(
-        "WARNING: DO NOT CHECK THE .KEY FILE INTO VERSION CONTROL OTHERWISE YOUR KEYS CAN BE DECRYPTED AND EXPOSED."
-      )
-    );
-  }
-
-  fs.writeFileSync(ENCRYPTED_FILE_PATH, "{}");
-
-  console.log(chalk.green(`Writing encrypted file to: ${ENCRYPTED_FILE_PATH}`));
-
-  const encryptedFileInstance = new Cryptify(
-    ENCRYPTED_FILE_PATH,
-    newKey,
-    undefined,
-    undefined,
-    true,
-    true
-  );
+  await writeSecrets(paths, {});
+  console.log(chalk.green(`Wrote encrypted file to: ${paths.encryptedFile}`));
 
   console.log("Init complete! 💯");
-
-  return await encryptedFileInstance.encrypt();
 };
 
 export default init;

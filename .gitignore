@@ -5,6 +5,9 @@ node_modules
 npm-debug.log
 yarn-error.log
 
+# Build output
+dist
+
 # Yarn
 .yarn
 !.yarn/patches
@@ -15,31 +18,3 @@ yarn-error.log
 .yarnrc.yml
 
 .pnp*
-
-
-# Cooler-Env secret key
-test_dir/test.key
-
-
-# Cooler-Env secret key
-test_dir/test.key
-
-
-# Cooler-Env secret key
-test_dir/test.key
-
-
-# Cooler-Env secret key
-test_dir/test.key
-
-
-# Cooler-Env secret key
-test_dir/test.key
-
-
-# Cooler-Env secret key
-test_dir/test.key
-
-
-# Cooler-Env secret key
-config/development.key

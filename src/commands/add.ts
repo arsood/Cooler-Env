@@ -1,118 +1,46 @@
-import inquirer from "inquirer";
-import fs from "fs";
-import path from "path";
-import clear from "clear";
 import chalk from "chalk";
-import figlet from "figlet";
-import Cryptify from "cryptify";
+import inquirer from "inquirer";
 
-const add = async (argv: any) => {
-  const CONFIG_DIR_PATH = path.join(process.cwd(), argv.p ? argv.p : "config");
-  const ENCRYPTION_KEY_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.key`);
-  const ENCRYPTED_FILE_PATH = path.join(CONFIG_DIR_PATH, `${argv.e}.yml.enc`);
-  const DECRYPTED_FILE_PATH = path.join(
-    CONFIG_DIR_PATH,
-    `${argv.e}-d.yml.enc.tmp`
-  );
+import { Argv } from "../lib/types";
+import { resolvePaths, requireEnv, configPathOf } from "../lib/paths";
+import { assertInitialized, validateKeyName, validateValue } from "../lib/guards";
+import { readSecrets, writeSecrets } from "../lib/secrets";
+import { CoolerEnvError } from "../lib/errors";
 
-  clear();
+const add = async (argv: Argv): Promise<void> => {
+  const env = requireEnv(argv);
+  const paths = resolvePaths(env, configPathOf(argv));
+  assertInitialized(paths, env);
 
-  console.log(
-    chalk.green(figlet.textSync("Cooler Env", { horizontalLayout: "full" }))
-  );
+  const secrets = await readSecrets(paths);
 
-  if (!argv.e) {
-    return console.log(
-      chalk.red("Please enter a valid environment with the -e option")
+  const answers = await inquirer.prompt<{ keyName: string; keyValue: string }>([
+    {
+      name: "keyName",
+      type: "input",
+      message: "What is the name of the key you would like to add?",
+      validate: validateKeyName,
+    },
+    {
+      name: "keyValue",
+      type: "input",
+      message: "What is the value of the key you would like to add?",
+      validate: validateValue,
+    },
+  ]);
+
+  const keyName = answers.keyName.trim();
+
+  if (secrets[keyName] !== undefined) {
+    throw new CoolerEnvError(
+      `The key "${keyName}" already exists. Try editing it instead.`
     );
   }
 
-  if (!fs.existsSync(ENCRYPTION_KEY_PATH)) {
-    return console.log(
-      chalk.red(`Encryption key not found for environment "${argv.e}"`)
-    );
-  }
+  secrets[keyName] = answers.keyValue;
+  await writeSecrets(paths, secrets);
 
-  if (!fs.existsSync(ENCRYPTED_FILE_PATH)) {
-    return console.log(
-      chalk.red(`Encrypted file not found for environment "${argv.e}"`)
-    );
-  }
-
-  try {
-    const answers = await inquirer.prompt([
-      {
-        name: "keyName",
-        type: "input",
-        message: "What is the name of the key you would like to add?",
-        validate: (value: string) => {
-          if (value.length) {
-            return true;
-          }
-
-          return "Please enter the name of the key you would like to add.";
-        },
-      },
-      {
-        name: "keyValue",
-        type: "input",
-        message: "What is the value of the key you would like to add?",
-        validate: (value: string) => {
-          if (value.length) {
-            return true;
-          }
-
-          return "Please enter the value of the key you would like to add.";
-        },
-      },
-    ]);
-
-    fs.copyFileSync(ENCRYPTED_FILE_PATH, DECRYPTED_FILE_PATH);
-
-    const secretKeyData = fs.readFileSync(ENCRYPTION_KEY_PATH).toString();
-
-    const decryptedFileInstance = new Cryptify(
-      DECRYPTED_FILE_PATH,
-      secretKeyData,
-      undefined,
-      undefined,
-      true,
-      true
-    );
-
-    const files = await decryptedFileInstance.decrypt();
-
-    fs.unlinkSync(DECRYPTED_FILE_PATH);
-
-    if (!files) return;
-
-    const parsedObj = JSON.parse(files[0]);
-
-    if (parsedObj[answers.keyName]) {
-      return console.log(
-        chalk.red("The key exists already. Try editing instead?")
-      );
-    }
-
-    parsedObj[answers.keyName] = answers.keyValue;
-
-    fs.writeFileSync(ENCRYPTED_FILE_PATH, JSON.stringify(parsedObj));
-
-    const encryptedFileInstance = new Cryptify(
-      ENCRYPTED_FILE_PATH,
-      secretKeyData,
-      undefined,
-      undefined,
-      true,
-      true
-    );
-
-    await encryptedFileInstance.encrypt();
-
-    console.log("Done! 🌟");
-  } catch (e) {
-    console.log("🚫 Cooler-Env 🚫");
-  }
+  console.log(chalk.green("Done! 🌟"));
 };
 
 export default add;
