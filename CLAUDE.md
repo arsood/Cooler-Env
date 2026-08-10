@@ -29,11 +29,11 @@ Never move CLI side effects (banner, arg parsing) into `index.ts`; that reintrod
 
 ### The shared secrets layer (`src/lib/`)
 
-All crypto and file I/O funnel through `src/lib/secrets.ts` — do not hand-roll cryptify calls in commands. `readSecrets(paths)` decrypts on a throwaway copy; `writeSecrets(paths, obj)` writes plaintext only to a temp file, encrypts it, then **atomically renames** it over `.yml.enc` — so the committed file is never plaintext, even briefly, and an interrupted run can't leak secrets. `createCipher` wraps cryptify's positional args (`silent`, `loose`; `loose` is required because the random hex key fails cryptify's password-complexity check). Decrypted payloads are run through `sanitize` to drop prototype-polluting keys before they reach `process.env`.
+All crypto and file I/O funnel through `src/lib/secrets.ts` — do not hand-roll ciphers in commands. Encryption uses Node's built-in **`aes-256-gcm`** (authenticated). `encryptSecrets`/`decryptSecrets` are pure buffer↔object functions; `readSecrets`/`writeSecrets` add file I/O on top. `writeSecrets` produces ciphertext in memory and **atomically renames** a temp file over the encrypted file, so plaintext never touches disk. Decrypted payloads run through `sanitize` to drop prototype-polluting keys before they reach `process.env`.
+
+The on-disk `.yml.enc` format is a single binary blob: `[salt(16)][iv(12)][authTag(16)][ciphertext]`. A fresh random salt + IV is generated per write, the AES key is derived from the secret key via `scrypt(password, salt)`, and GCM's auth tag means a wrong key or any tampering fails loudly (throws `CoolerEnvError`) rather than yielding garbage. **This format is not backward-compatible with the old cryptify/aes-256-cbc files (v2.x); v3 is a hard break.**
 
 Other `lib/` helpers: `paths.ts` (`resolvePaths`, `requireEnv`, `configPathOf`), `guards.ts` (`assertInitialized`, prompt validators), `errors.ts` (`CoolerEnvError`), `banner.ts`, `types.ts`.
-
-Note: `cryptify` uses `aes-256-cbc` (unauthenticated — no tamper detection) with a random IV and an unsalted single-hash KDF. That KDF is acceptable only because the "password" is a full random key, not human-chosen.
 
 ### Tests
 
