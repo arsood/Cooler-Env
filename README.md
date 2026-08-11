@@ -194,4 +194,4 @@ CI runs lint + build + test across Node 18, 20, and 22 on every push and pull re
 
 ## License
 
-[MIT](./LICENSE.md) © Arun Sood
+[MIT](./LICENSE.md) © Aaron Sood
