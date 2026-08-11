@@ -19,7 +19,6 @@ Instead of scattering plaintext `.env` files across machines and chat threads, C
 - [CLI reference](#cli-reference)
 - [Programmatic API](#programmatic-api)
 - [Security model](#security-model)
-- [Upgrading from v2](#upgrading-from-v2)
 - [Development](#development)
 - [License](#license)
 
@@ -171,12 +170,6 @@ try {
 - **Prototype-pollution guard:** decrypted payloads are sanitized to drop `__proto__` / `constructor` / `prototype` keys before they reach your object or `process.env`.
 
 The one rule that matters most: **keep the `.key` file out of version control.** `init` gitignores it for you.
-
-## Upgrading from v2
-
-**v3 is a hard break.** The encryption format changed from the old `cryptify` / `aes-256-cbc` scheme to authenticated `aes-256-gcm`, so **v2 `.yml.enc` files cannot be read by v3.** To migrate, decrypt your secrets with v2, upgrade, re-`init`, and re-add them.
-
-The `loadEnv` signature also changed: the old positional `configPath` second argument is now part of an options object, and `loadEnv` no longer writes to `process.env` by default — pass `{ inject: true }` for the previous behavior.
 
 ## Development
 
