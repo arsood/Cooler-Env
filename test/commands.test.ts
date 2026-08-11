@@ -35,7 +35,6 @@ describe("add / edit / delete round-trips", () => {
 
     const secrets = await loadEnv("test");
     expect(secrets.API_KEY).toBe("secret-1");
-    expect(process.env.API_KEY).toBe("secret-1");
   });
 
   it("refuses to add a duplicate key", async () => {

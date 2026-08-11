@@ -36,17 +36,41 @@ describe("loadEnv", () => {
     await expect(loadEnv("test")).rejects.toThrow(/Encryption key not found/);
   });
 
-  it("leaves no plaintext temp files behind after loading", async () => {
+  it("returns secrets without touching process.env by default", async () => {
     await init(ENV);
     prompt.mockResolvedValueOnce({ keyName: "TOKEN", keyValue: "abc123" });
     await add(ENV);
 
-    await loadEnv("test");
+    const secrets = await loadEnv("test");
+
+    expect(secrets.TOKEN).toBe("abc123");
+    expect(process.env.TOKEN).toBeUndefined();
+  });
+
+  it("injects into process.env when asked, and leaves no temp files", async () => {
+    await init(ENV);
+    prompt.mockResolvedValueOnce({ keyName: "TOKEN", keyValue: "abc123" });
+    await add(ENV);
+
+    await loadEnv("test", { inject: true });
 
     const leftovers = fs
       .readdirSync(path.join(sandbox.dir, "config"))
       .filter((f) => f.endsWith(".tmp"));
     expect(leftovers).toEqual([]);
+    expect(process.env.TOKEN).toBe("abc123");
+  });
+
+  it("does not override an already-set variable unless told to", async () => {
+    await init(ENV);
+    prompt.mockResolvedValueOnce({ keyName: "TOKEN", keyValue: "abc123" });
+    await add(ENV);
+
+    process.env.TOKEN = "preset";
+    await loadEnv("test", { inject: true });
+    expect(process.env.TOKEN).toBe("preset");
+
+    await loadEnv("test", { inject: true, override: true });
     expect(process.env.TOKEN).toBe("abc123");
   });
 });
