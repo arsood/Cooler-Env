@@ -55,7 +55,9 @@
     "cross-spawn": "^7.0.6",
     "brace-expansion": "^2.0.2",
     "picomatch": "^2.3.1",
-    "ip": "^2.0.1",
+    "socks": "^2.8.9",
+    "node-gyp": "^13.0.1",
+    "test-exclude": "^7.0.1",
     "@babel/core": "^7.26.10",
     "@babel/helpers": "^7.26.10",
     "@istanbuljs/load-nyc-config/js-yaml": "^3.14.1"
