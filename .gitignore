@@ -8,6 +8,9 @@ yarn-error.log
 # Build output
 dist
 
+# Test coverage
+coverage
+
 # Yarn
 .yarn/*
 !.yarn/patches
