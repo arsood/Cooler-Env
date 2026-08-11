@@ -78,17 +78,32 @@ cooler-env delete -e development
 
 ## loadEnv
 
-Cooler-Env comes with a helper function called `loadEnv` that is meant to load all of your environment variables into `process.env` and return a promise. You will use this function in your application's code before using any of the environment variables.
-
-This function takes two arguments: the first is your application's environment (usually passing `process.env.NODE_ENV`), and the second is optionally adding the directory path you want to use for your encryption key and encrypted files. This will default to "config".
-
-Sample usage:
+Cooler-Env comes with a helper function called `loadEnv` that decrypts an environment's secrets and returns them as an object (a `Promise<Secrets>`). By default it does **not** touch `process.env` — you read the returned object directly. Call it in your application's code before using any of the variables.
 
 ```javascript
 import { loadEnv } from "cooler-env";
 
-// Example IIFE async function
 (async () => {
-  await loadEnv(process.env.NODE_ENV);
+  const env = await loadEnv(process.env.NODE_ENV);
+  console.log(env.API_KEY);
+})();
+```
+
+The first argument is your application's environment (usually `process.env.NODE_ENV`). The second is an optional options object:
+
+| Option       | Type      | Default    | Description                                                                                      |
+| ------------ | --------- | ---------- | ------------------------------------------------------------------------------------------------ |
+| `configPath` | `string`  | `"config"` | Directory holding the encryption key and encrypted files.                                        |
+| `inject`     | `boolean` | `false`    | Also write each secret into `process.env`.                                                        |
+| `override`   | `boolean` | `false`    | When injecting, overwrite variables already set in the environment (a shell/CI value wins by default). |
+
+If you prefer the classic "populate `process.env` globally" behavior:
+
+```javascript
+import { loadEnv } from "cooler-env";
+
+(async () => {
+  await loadEnv(process.env.NODE_ENV, { inject: true });
+  // now process.env.API_KEY is set (unless it was already set in the shell)
 })();
 ```

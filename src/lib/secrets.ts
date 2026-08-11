@@ -1,9 +1,16 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { promisify } from "util";
 
 import { Paths, Secrets } from "./types";
 import { CoolerEnvError } from "./errors";
+
+const scrypt = promisify(crypto.scrypt) as (
+  password: string,
+  salt: Buffer,
+  keylen: number
+) => Promise<Buffer>;
 
 // Authenticated encryption. The on-disk format is a single binary blob:
 //
@@ -23,11 +30,19 @@ const HEADER_LENGTH = SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH;
 // ever spread onto another object (e.g. process.env). Never round-trip these.
 const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
-const deriveKey = (password: string, salt: Buffer): Buffer =>
-  crypto.scryptSync(password, salt, KEY_LENGTH);
+const deriveKey = (password: string, salt: Buffer): Promise<Buffer> =>
+  scrypt(password, salt, KEY_LENGTH);
 
-const readKey = (paths: Paths): string =>
-  fs.readFileSync(paths.keyFile).toString().trim();
+const readKey = async (paths: Paths): Promise<string> => {
+  try {
+    return (await fs.promises.readFile(paths.keyFile)).toString().trim();
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new CoolerEnvError(`Encryption key not found at ${paths.keyFile}.`);
+    }
+    throw err;
+  }
+};
 
 /** Strip prototype-polluting keys and coerce values to strings. */
 const sanitize = (raw: Record<string, unknown>): Secrets => {
@@ -42,10 +57,13 @@ const sanitize = (raw: Record<string, unknown>): Secrets => {
 };
 
 /** Encrypt a secrets object into the on-disk blob format. */
-export const encryptSecrets = (secrets: Secrets, password: string): Buffer => {
+export const encryptSecrets = async (
+  secrets: Secrets,
+  password: string
+): Promise<Buffer> => {
   const salt = crypto.randomBytes(SALT_LENGTH);
   const iv = crypto.randomBytes(IV_LENGTH);
-  const key = deriveKey(password, salt);
+  const key = await deriveKey(password, salt);
 
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
   const ciphertext = Buffer.concat([
@@ -57,7 +75,10 @@ export const encryptSecrets = (secrets: Secrets, password: string): Buffer => {
 };
 
 /** Decrypt an on-disk blob back into a sanitized secrets object. */
-export const decryptSecrets = (blob: Buffer, password: string): Secrets => {
+export const decryptSecrets = async (
+  blob: Buffer,
+  password: string
+): Promise<Secrets> => {
   if (blob.length < HEADER_LENGTH) {
     throw new CoolerEnvError("The encrypted file is truncated or corrupt.");
   }
@@ -67,7 +88,11 @@ export const decryptSecrets = (blob: Buffer, password: string): Secrets => {
   const authTag = blob.subarray(SALT_LENGTH + IV_LENGTH, HEADER_LENGTH);
   const ciphertext = blob.subarray(HEADER_LENGTH);
 
-  const decipher = crypto.createDecipheriv(ALGORITHM, deriveKey(password, salt), iv);
+  const decipher = crypto.createDecipheriv(
+    ALGORITHM,
+    await deriveKey(password, salt),
+    iv
+  );
   decipher.setAuthTag(authTag);
 
   let plaintext: string;
@@ -95,8 +120,23 @@ export const decryptSecrets = (blob: Buffer, password: string): Secrets => {
 };
 
 /** Decrypt the environment's encrypted file into a plain object. */
-export const readSecrets = async (paths: Paths): Promise<Secrets> =>
-  decryptSecrets(fs.readFileSync(paths.encryptedFile), readKey(paths));
+export const readSecrets = async (paths: Paths): Promise<Secrets> => {
+  const password = await readKey(paths);
+
+  let blob: Buffer;
+  try {
+    blob = await fs.promises.readFile(paths.encryptedFile);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new CoolerEnvError(
+        `Encrypted file not found at ${paths.encryptedFile}.`
+      );
+    }
+    throw err;
+  }
+
+  return decryptSecrets(blob, password);
+};
 
 /**
  * Encrypt `secrets` and atomically replace the environment's encrypted file.
@@ -109,7 +149,7 @@ export const writeSecrets = async (
   paths: Paths,
   secrets: Secrets
 ): Promise<void> => {
-  const blob = encryptSecrets(secrets, readKey(paths));
+  const blob = await encryptSecrets(secrets, await readKey(paths));
   const staging = path.join(
     paths.configDir,
     `.coolerenv-${process.pid}-${crypto.randomBytes(6).toString("hex")}.tmp`
