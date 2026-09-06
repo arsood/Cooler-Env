@@ -44,6 +44,31 @@ const warnUnknownOptions = (argv: Argv): void => {
       console.error(chalk.yellow(`Warning: unknown option ${flag} (ignored).`));
     }
   }
+
+  // Extra positionals (beyond the command name) are silently dropped by every
+  // command, so flag them too.
+  for (const extra of argv._.slice(1)) {
+    console.error(chalk.yellow(`Warning: unexpected argument "${extra}".`));
+  }
+};
+
+/**
+ * Parse raw CLI arguments into the shared `Argv` shape. Declares -e/-p as
+ * strings so minimist never coerces them to numbers or booleans (e.g. `-p 123`
+ * or a bare `-e`), and the flag options as booleans so they never swallow a
+ * following argument. A malformed option (e.g. `--__proto__`) that makes
+ * minimist throw is turned into a friendly `CoolerEnvError`.
+ */
+export const parseArgs = (args: string[]): Argv => {
+  try {
+    return minimist(args, {
+      string: ["e", "p"],
+      boolean: ["show", "values", "help", "version"],
+      alias: { h: "help", v: "version" },
+    }) as unknown as Argv;
+  } catch {
+    throw new CoolerEnvError("Could not parse the command-line options.");
+  }
 };
 
 /**
@@ -51,14 +76,7 @@ const warnUnknownOptions = (argv: Argv): void => {
  * for bad input; the caller decides how to print it.
  */
 export const run = async (args: string[]): Promise<void> => {
-  // Declare -e/-p as strings so minimist never coerces them to numbers or
-  // booleans (e.g. `-p 123` or a bare `-e`), and the flag options as booleans
-  // so they never swallow a following argument.
-  const argv = minimist(args, {
-    string: ["e", "p"],
-    boolean: ["show", "values", "help", "version"],
-    alias: { h: "help", v: "version" },
-  }) as unknown as Argv;
+  const argv = parseArgs(args);
 
   if (argv.version === true) {
     console.log(getVersion());

@@ -10,7 +10,7 @@ export const getVersion = (): string => {
     const pkg = JSON.parse(
       fs.readFileSync(path.join(__dirname, "..", "..", "package.json"), "utf8"),
     ) as { version?: string };
-    return pkg.version ?? "unknown";
+    return String(pkg.version ?? "unknown");
   } catch {
     return "unknown";
   }

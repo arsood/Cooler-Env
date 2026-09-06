@@ -8,7 +8,6 @@ import path from "path";
 
 import inquirer from "inquirer";
 import { run } from "../src/run";
-import { getVersion } from "../src/lib/usage";
 import { makeSandbox, Sandbox } from "./sandbox";
 
 const prompt = inquirer.prompt as unknown as jest.Mock;
@@ -91,14 +90,29 @@ describe("run (CLI dispatch)", () => {
     expect(valueQ.type).toBe("input");
   });
 
+  // Read the version independently of getVersion() so the assertion can't pass
+  // by both sides returning "unknown".
+  const pkgVersion = JSON.parse(
+    fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8"),
+  ).version as string;
+
   it.each([["--version"], ["-v"]])(
-    "prints the version for %s and dispatches no command",
+    "prints the package version for %s",
     async (flag) => {
       await run([flag]);
 
-      expect(log).toHaveBeenCalledWith(getVersion());
+      expect(log).toHaveBeenCalledWith(pkgVersion);
+      expect(pkgVersion).toMatch(/^\d+\.\d+\.\d+/);
     },
   );
+
+  it("prints the version and dispatches no command when combined", async () => {
+    await run(["init", "-e", "t", "--version"]);
+
+    expect(log).toHaveBeenCalledWith(pkgVersion);
+    // init did not run, so no config dir was created.
+    expect(fs.existsSync(path.join(sandbox.dir, "config"))).toBe(false);
+  });
 
   it.each([["--help"], ["-h"]])("prints usage for %s", async (flag) => {
     await run([flag]);
@@ -113,6 +127,14 @@ describe("run (CLI dispatch)", () => {
       expect.stringContaining("unknown option --bogus"),
     );
     expect(fs.existsSync(path.join(sandbox.dir, "config", "t.key"))).toBe(true);
+  });
+
+  it("warns on an unexpected positional argument", async () => {
+    await run(["init", "-e", "t", "extra"]);
+
+    expect(error).toHaveBeenCalledWith(
+      expect.stringContaining('unexpected argument "extra"'),
+    );
   });
 
   it("treats list as a valid command", async () => {

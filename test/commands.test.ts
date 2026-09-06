@@ -205,16 +205,19 @@ describe("secret value masking", () => {
 describe("list", () => {
   let sandbox: Sandbox;
   let log: jest.SpyInstance;
+  let error: jest.SpyInstance;
 
   beforeEach(async () => {
     sandbox = makeSandbox();
     prompt.mockReset();
     log = jest.spyOn(console, "log").mockImplementation(() => {});
+    error = jest.spyOn(console, "error").mockImplementation(() => {});
     await init(ENV);
   });
 
   afterEach(() => {
     log.mockRestore();
+    error.mockRestore();
     sandbox.restore();
   });
 
@@ -238,10 +241,28 @@ describe("list", () => {
     expect(log).toHaveBeenLastCalledWith("A_KEY=secret");
   });
 
-  it("reports when there are no keys", async () => {
+  it("quotes --values output so a newline can't spoof a key", async () => {
+    await writeSecrets(resolvePaths("test"), {
+      NL: "line1\nFAKE=injected",
+      EMPTY: "",
+    });
+
+    log.mockClear();
+    await list({ ...ENV, values: true });
+    const lines = log.mock.calls.map((c) => c[0]);
+
+    // Every key prints on exactly one line; the newline is escaped, not raw.
+    expect(lines).toContain('NL="line1\\nFAKE=injected"');
+    expect(lines).toContain('EMPTY=""');
+    expect(lines.some((l) => l.startsWith("FAKE="))).toBe(false);
+  });
+
+  it("reports an empty env on stderr, leaving stdout clean", async () => {
+    log.mockClear();
     await list(ENV);
 
-    expect(log).toHaveBeenCalledWith(expect.stringContaining("No keys set."));
+    expect(log).not.toHaveBeenCalled(); // nothing on stdout
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("No keys set."));
   });
 
   it("errors for an uninitialized environment", async () => {

@@ -112,7 +112,7 @@ cooler-env delete -e development
 
 ### `list`
 
-Prints the key names for an environment, one per line (sorted). Pass `--values` to also print the values as `KEY=value` — this writes secrets to stdout, so use it deliberately.
+Prints the key names for an environment, one per line, sorted (byte order). Pass `--values` to also print the values as `KEY=value` — a value that contains spaces, quotes, `=`, or a newline is quoted (`KEY="..."`) so every key stays on its own line. This writes secrets to stdout, so use it deliberately.
 
 ```bash
 cooler-env list -e development
@@ -126,7 +126,7 @@ cooler-env --help      # usage, commands, and options
 cooler-env --version   # the installed version
 ```
 
-Unrecognized options are ignored with a warning on stderr rather than failing.
+Unrecognized options and unexpected arguments are ignored with a warning on stderr rather than failing.
 
 ## Programmatic API
 
