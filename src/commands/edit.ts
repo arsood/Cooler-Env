@@ -22,7 +22,7 @@ const edit = async (argv: Argv): Promise<void> => {
   const { keyToEdit } = await inquirer.prompt<{ keyToEdit: string }>([
     {
       name: "keyToEdit",
-      type: "list",
+      type: "select",
       message: "Which key would you like to edit?",
       choices: keys,
     },

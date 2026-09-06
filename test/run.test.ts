@@ -6,8 +6,11 @@ jest.mock("inquirer", () => ({
 import fs from "fs";
 import path from "path";
 
+import inquirer from "inquirer";
 import { run } from "../src/run";
 import { makeSandbox, Sandbox } from "./sandbox";
+
+const prompt = inquirer.prompt as unknown as jest.Mock;
 
 describe("run (CLI dispatch)", () => {
   let sandbox: Sandbox;
@@ -66,5 +69,21 @@ describe("run (CLI dispatch)", () => {
       /-p option requires/,
     );
     expect(fs.existsSync(path.join(sandbox.dir, "config"))).toBe(false);
+  });
+
+  it("parses --show as a boolean flag and passes it to the command", async () => {
+    prompt.mockReset();
+    await run(["init", "-e", "t"]); // fresh init: no prompt
+    prompt.mockResolvedValueOnce({ keyName: "FOO", keyValue: "bar" });
+
+    await run(["add", "-e", "t", "--show"]);
+
+    // --show flips the value prompt to a visible `input`; seeing that here
+    // proves minimist parsed the bare flag and `add` received `show: true`.
+    const questions = prompt.mock.calls.at(-1)?.[0];
+    const valueQ = questions.find(
+      (q: { name: string }) => q.name === "keyValue",
+    );
+    expect(valueQ.type).toBe("input");
   });
 });

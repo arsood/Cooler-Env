@@ -66,6 +66,10 @@ const sanitize = (raw: Record<string, unknown>): Secrets => {
   return clean;
 };
 
+/** The versioned header (magic + version byte) prepended to every new blob. */
+const currentHeader = (): Buffer =>
+  Buffer.concat([MAGIC, Buffer.from([FORMAT_VERSION])]);
+
 /** Encrypt a secrets object into the on-disk blob format. */
 export const encryptSecrets = async (
   secrets: Secrets,
@@ -74,54 +78,40 @@ export const encryptSecrets = async (
   const salt = crypto.randomBytes(SALT_LENGTH);
   const iv = crypto.randomBytes(IV_LENGTH);
   const key = await deriveKey(password, salt);
+  const header = currentHeader();
 
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+  // Bind the header into the auth tag, so the version byte can't be flipped or
+  // the magic stripped without decryption failing.
+  cipher.setAAD(header);
   const ciphertext = Buffer.concat([
     cipher.update(JSON.stringify(secrets), "utf8"),
     cipher.final(),
   ]);
 
-  return Buffer.concat([
-    MAGIC,
-    Buffer.from([FORMAT_VERSION]),
-    salt,
-    iv,
-    cipher.getAuthTag(),
-    ciphertext,
-  ]);
+  return Buffer.concat([header, salt, iv, cipher.getAuthTag(), ciphertext]);
 };
 
-/** Decrypt an on-disk blob back into a sanitized secrets object. */
-export const decryptSecrets = async (
+/**
+ * Decrypt one blob body located at `offset` (0 for a headerless v3 body). When
+ * `aad` is given it is bound into the GCM auth tag, so it must match what was
+ * used at encryption time or `final()` throws.
+ */
+const decodeBody = async (
   blob: Buffer,
+  offset: number,
+  aad: Buffer | undefined,
   password: string,
 ): Promise<Secrets> => {
-  // A magic prefix means a versioned blob; without it, treat the whole blob as
-  // a v3 (version 0) body for backward compatibility.
-  let offset = 0;
-  if (
-    blob.length >= MAGIC.length &&
-    blob.subarray(0, MAGIC.length).equals(MAGIC)
-  ) {
-    const version = blob[MAGIC.length];
-    if (version !== FORMAT_VERSION) {
-      throw new CoolerEnvError(
-        `Unsupported encrypted file format version ${version}. Upgrade cooler-env to read this file.`,
-      );
-    }
-    offset = VERSION_HEADER_LENGTH;
-  }
-
   if (blob.length < offset + BODY_HEADER_LENGTH) {
     throw new CoolerEnvError("The encrypted file is truncated or corrupt.");
   }
 
-  const saltStart = offset;
-  const ivStart = saltStart + SALT_LENGTH;
+  const ivStart = offset + SALT_LENGTH;
   const authTagStart = ivStart + IV_LENGTH;
   const ciphertextStart = authTagStart + AUTH_TAG_LENGTH;
 
-  const salt = blob.subarray(saltStart, ivStart);
+  const salt = blob.subarray(offset, ivStart);
   const iv = blob.subarray(ivStart, authTagStart);
   const authTag = blob.subarray(authTagStart, ciphertextStart);
   const ciphertext = blob.subarray(ciphertextStart);
@@ -131,6 +121,7 @@ export const decryptSecrets = async (
     await deriveKey(password, salt),
     iv,
   );
+  if (aad) decipher.setAAD(aad);
   decipher.setAuthTag(authTag);
 
   let plaintext: string;
@@ -161,6 +152,53 @@ export const decryptSecrets = async (
   }
 
   return sanitize(parsed as Record<string, unknown>);
+};
+
+/** Decrypt an on-disk blob back into a sanitized secrets object. */
+export const decryptSecrets = async (
+  blob: Buffer,
+  password: string,
+): Promise<Secrets> => {
+  // No magic prefix → a v3 (headerless) body, read for backward compatibility.
+  // The length guard also keeps a short blob (e.g. exactly "CENV") out of the
+  // version read below, so it reports "truncated" rather than a bogus version.
+  const hasMagic =
+    blob.length >= VERSION_HEADER_LENGTH &&
+    blob.subarray(0, MAGIC.length).equals(MAGIC);
+
+  if (!hasMagic) {
+    return decodeBody(blob, 0, undefined, password);
+  }
+
+  const version = blob[MAGIC.length];
+  const header = blob.subarray(0, VERSION_HEADER_LENGTH);
+
+  if (version === FORMAT_VERSION) {
+    try {
+      return await decodeBody(blob, VERSION_HEADER_LENGTH, header, password);
+    } catch (err) {
+      // A real v4 blob that failed to authenticate (wrong key or tampering)
+      // lands here — but so would the ~1-in-2^32 case where a v3 blob's random
+      // salt happened to start with the magic bytes. Try a headerless read;
+      // if that also fails, the file really was a bad v4 blob, so re-surface
+      // the original error.
+      try {
+        return await decodeBody(blob, 0, undefined, password);
+      } catch {
+        throw err;
+      }
+    }
+  }
+
+  // Unknown version: a future format we can't read, or the same rare v3 magic
+  // collision. Attempt a headerless read before declaring the file unreadable.
+  try {
+    return await decodeBody(blob, 0, undefined, password);
+  } catch {
+    throw new CoolerEnvError(
+      `Unsupported encrypted file format version ${version}. Upgrade cooler-env to read this file.`,
+    );
+  }
 };
 
 /** Decrypt the environment's encrypted file into a plain object. */

@@ -47,13 +47,15 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `--show` flag on `add` and `edit` to type secret values in the clear (and,
   on `edit`, to pre-fill and edit the current value in place).
 
-### Changed
+### Changed (breaking)
 
 - Key names are validated as environment-variable identifiers on `add`: they
-  must start with a letter or underscore and contain only letters, digits, and
-  underscores (e.g. `API_KEY`). Existing stored keys are unaffected — only new
-  keys are checked — but a name like `API-KEY` that earlier versions accepted
-  is now rejected at the prompt.
+  must start with a letter or underscore and contain only ASCII letters, digits,
+  and underscores (e.g. `API_KEY`). Names that earlier versions accepted — such
+  as `API-KEY`, `my.key`, a name with spaces, or a non-ASCII name — are now
+  rejected at the prompt. Existing stored keys are unaffected: only newly added
+  keys are checked, and `edit`/`delete`/`loadEnv` still handle any name already
+  in the file.
 
 ### Security
 
@@ -70,9 +72,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The `.yml.enc` blob now carries a 5-byte versioned header
   (`[magic "CENV"(4)][version(1)]`) ahead of the existing
   `[salt(16)][iv(12)][authTag(16)][ciphertext]` body, so the KDF/cipher
-  parameters can evolve in future versions. Reads are backward compatible:
-  headerless blobs written by v3 are still decrypted (treated as version 0).
-  Files written by v4 are not readable by v3.
+  parameters can evolve in future versions. The header is bound into the GCM
+  auth tag (as additional authenticated data), so the version byte cannot be
+  altered without decryption failing. Reads are backward compatible: headerless
+  blobs written by v3 are still decrypted (treated as version 0). Files written
+  by v4 are not readable by v3.
 
 ### Internal
 
