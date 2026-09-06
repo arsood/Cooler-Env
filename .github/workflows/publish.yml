@@ -3,6 +3,10 @@ name: Publish
 on:
   release:
     types: [published]
+  # Manual fallback: dispatch against a version tag (e.g. `--ref v4.0.0`) when a
+  # release event doesn't fire the run. The tag-vs-package.json check below
+  # still guards it, since `--ref v4.0.0` makes GITHUB_REF_NAME the tag.
+  workflow_dispatch:
 
 jobs:
   publish:
