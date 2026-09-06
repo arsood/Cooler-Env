@@ -12,7 +12,7 @@ const edit = async (argv: Argv): Promise<void> => {
   const paths = resolvePaths(env, configPathOf(argv));
   assertInitialized(paths, env);
 
-  const { secrets, password } = await readSecretsWithKey(paths);
+  const { secrets, secretKey } = await readSecretsWithKey(paths);
   const keys = Object.keys(secrets);
 
   if (keys.length === 0) {
@@ -43,7 +43,7 @@ const edit = async (argv: Argv): Promise<void> => {
   ]);
 
   secrets[keyToEdit] = keyEditedValue;
-  await writeSecrets(paths, secrets, password);
+  await writeSecrets(paths, secrets, secretKey);
 
   console.log(chalk.green("Done! 🌟"));
 };

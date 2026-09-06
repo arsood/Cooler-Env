@@ -12,7 +12,7 @@ const add = async (argv: Argv): Promise<void> => {
   const paths = resolvePaths(env, configPathOf(argv));
   assertInitialized(paths, env);
 
-  const { secrets, password } = await readSecretsWithKey(paths);
+  const { secrets, secretKey } = await readSecretsWithKey(paths);
 
   // Mask the secret value by default so it isn't echoed to the terminal (and
   // captured in scrollback). A `password` prompt with no `mask` hides the
@@ -43,7 +43,7 @@ const add = async (argv: Argv): Promise<void> => {
   }
 
   secrets[keyName] = answers.keyValue;
-  await writeSecrets(paths, secrets, password);
+  await writeSecrets(paths, secrets, secretKey);
 
   console.log(chalk.green("Done! 🌟"));
 };
