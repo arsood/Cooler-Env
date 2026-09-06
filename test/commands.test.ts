@@ -4,6 +4,7 @@ jest.mock("inquirer", () => ({
 }));
 
 import fs from "fs";
+import path from "path";
 import { execFileSync } from "child_process";
 import { parseEnv } from "util";
 
@@ -55,6 +56,18 @@ describe("add / edit / delete round-trips", () => {
 
     prompt.mockResolvedValueOnce({ keyName: "API_KEY", keyValue: "two" });
     await expect(add(ENV)).rejects.toThrow(/already exists/);
+  });
+
+  it("leaves no temp files behind after a write", async () => {
+    // `writeSecrets` (via add) stages a `.coolerenv-*.tmp` file and atomically
+    // renames it over the encrypted file; nothing transient should remain.
+    prompt.mockResolvedValueOnce({ keyName: "API_KEY", keyValue: "secret" });
+    await add(ENV);
+
+    const leftovers = fs
+      .readdirSync(path.join(sandbox.dir, "config"))
+      .filter((f) => f.endsWith(".tmp"));
+    expect(leftovers).toEqual([]);
   });
 
   it("allows an empty-string value", async () => {

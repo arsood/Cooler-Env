@@ -182,6 +182,30 @@ describe("init", () => {
     }
   });
 
+  it("warns when cwd is not inside a git repository", async () => {
+    // The sandbox is marked as a repo root; drop the marker so cwd has no
+    // `.git` at or above it.
+    fs.rmSync(path.join(sandbox.dir, ".git"), { recursive: true, force: true });
+
+    await init({ _: [], e: "dev" });
+
+    // The .gitignore is still written (speculative protection), but a warning
+    // flags that git won't honor it here.
+    expect(readGitignore(sandbox.dir)).toContain("/config/dev.key");
+    expect(error.mock.calls.flat().join("\n")).toMatch(
+      /no git repository found/,
+    );
+  });
+
+  it("does not warn about a missing repo when cwd is inside one", async () => {
+    // The sandbox already carries a `.git` marker, so init should stay quiet.
+    await init({ _: [], e: "dev" });
+
+    expect(error.mock.calls.flat().join("\n")).not.toMatch(
+      /no git repository found/,
+    );
+  });
+
   it("warns and still completes when .gitignore cannot be written", async () => {
     fs.mkdirSync(path.join(sandbox.dir, ".gitignore")); // a directory, not a file
 

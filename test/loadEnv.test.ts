@@ -3,7 +3,6 @@ jest.mock("inquirer", () => ({
   default: { prompt: jest.fn() },
 }));
 
-import fs from "fs";
 import path from "path";
 
 import inquirer from "inquirer";
@@ -74,17 +73,13 @@ describe("loadEnv", () => {
     expect(process.env.TOKEN).toBeUndefined();
   });
 
-  it("injects into process.env when asked, and leaves no temp files", async () => {
+  it("injects into process.env when asked", async () => {
     await init(ENV);
     prompt.mockResolvedValueOnce({ keyName: "TOKEN", keyValue: "abc123" });
     await add(ENV);
 
     await loadEnv("test", { inject: true });
 
-    const leftovers = fs
-      .readdirSync(path.join(sandbox.dir, "config"))
-      .filter((f) => f.endsWith(".tmp"));
-    expect(leftovers).toEqual([]);
     expect(process.env.TOKEN).toBe("abc123");
   });
 

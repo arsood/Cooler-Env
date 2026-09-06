@@ -89,6 +89,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Unrecognized options and unexpected arguments are now ignored with a warning
   on stderr instead of being silently accepted, and a malformed option no longer
   crashes with a raw stack trace.
+- `init` now warns when the current directory is not inside a git repository
+  (no `.git` at or above it), since the `.gitignore` it writes there can only
+  protect the key once it lives in a repo. The key and encrypted file are still
+  created.
 
 ### Security
 
@@ -135,7 +139,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   this package's CommonJS output across the whole Node 20 range. (inquirer 13+
   is ESM-only, which would break `require("inquirer")` on Node 20.0–20.18 /
   22.0–22.11, where `require(ESM)` is still flagged — so we stay on 12.)
-- `prepublishOnly` now runs lint, format check, and tests before building.
+- `prepublishOnly` now runs lint, format check, and tests (with coverage)
+  before building.
+- Test coverage is enforced: `yarn test:coverage` runs Jest with a
+  `coverageThreshold` floor (90% statements/functions/lines, 85% branches over
+  `src/`), wired into CI and `prepublishOnly`.
 
 ## [3.0.0] - 2026-08-10
 

@@ -18,6 +18,11 @@ export const makeSandbox = (): Sandbox => {
   const dir = fs.realpathSync(
     fs.mkdtempSync(path.join(os.tmpdir(), "coolerenv-")),
   );
+  // Mark the sandbox as a git repo root so `init` treats it the way a real
+  // project root behaves (its `.gitignore` protects the key). A bare `.git`
+  // marker is enough for the walk-up check; tests that need a real repo run
+  // their own `git init`, which populates this directory.
+  fs.mkdirSync(path.join(dir, ".git"));
   const previousCwd = process.cwd();
   process.chdir(dir);
 

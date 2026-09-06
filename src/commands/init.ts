@@ -61,6 +61,20 @@ export const gitignoreEntryFor = (
   );
 };
 
+/**
+ * Whether `dir`, or any ancestor, is a git working tree (has a `.git` entry —
+ * a directory for a normal repo, a file for a worktree/submodule).
+ */
+const inGitRepo = (dir: string): boolean => {
+  let current = dir;
+  for (;;) {
+    if (fs.existsSync(path.join(current, ".git"))) return true;
+    const parent = path.dirname(current);
+    if (parent === current) return false; // reached the filesystem root
+    current = parent;
+  }
+};
+
 /** Append `entry` to cwd's .gitignore, creating the file and de-duplicating. */
 const ensureGitignored = (entry: string): void => {
   const gitignorePath = path.join(process.cwd(), ".gitignore");
@@ -141,6 +155,16 @@ const init = async (argv: Argv): Promise<void> => {
   console.log(chalk.green(`Wrote encryption key to: ${paths.keyFile}`));
 
   if (entry !== undefined) {
+    // The .gitignore is written in cwd, so it only protects the key if cwd is
+    // inside a git repo. If it isn't — no repo, or the repo root is *below* cwd
+    // — git never reads this file and the key is unprotected.
+    const cwd = fs.realpathSync(process.cwd());
+    if (!inGitRepo(cwd)) {
+      warn(
+        `Warning: no git repository found at or above ${cwd}, so the .gitignore written here will not protect ${paths.keyFile}. Make sure the key is never committed.`,
+      );
+    }
+
     try {
       ensureGitignored(entry);
     } catch (err) {
