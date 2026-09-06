@@ -1,6 +1,6 @@
 {
   "name": "cooler-env",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "CLI + module utility to help you manage your environment variables better. Inspired by Ruby on Rails credentials.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,7 +15,7 @@
     "dist"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "author": "Aaron Sood",
   "license": "MIT",
@@ -34,7 +34,7 @@
   "dependencies": {
     "chalk": "^4.1.2",
     "figlet": "^1.7.0",
-    "inquirer": "^11.1.0",
+    "inquirer": "^12",
     "minimist": "^1.2.8"
   },
   "devDependencies": {
@@ -42,7 +42,7 @@
     "@types/figlet": "^1.5.8",
     "@types/jest": "^30.0.0",
     "@types/minimist": "^1.2.5",
-    "@types/node": "^22.9.0",
+    "@types/node": "^20",
     "eslint": "^10",
     "eslint-config-prettier": "^10",
     "jest": "^30.0.0",

@@ -6,6 +6,20 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed (breaking)
+
+- **Minimum supported Node is now 20** (`engines.node: ">=20"`). Node 18 reached
+  end-of-life in April 2025; dropping it keeps the package on supported runtimes
+  and lets `@types/node` track a current line. (The CLI itself still runs on the
+  full Node 20 range — see the `inquirer` note below.)
+- Key names are validated as environment-variable identifiers on `add`: they
+  must start with a letter or underscore and contain only ASCII letters, digits,
+  and underscores (e.g. `API_KEY`). Names that earlier versions accepted — such
+  as `API-KEY`, `my.key`, a name with spaces, or a non-ASCII name — are now
+  rejected at the prompt. Existing stored keys are unaffected: only newly added
+  keys are checked, and `edit`/`delete`/`loadEnv` still handle any name already
+  in the file.
+
 ### Fixed
 
 - `-p` with an absolute path wrote files under `<cwd>/<absolute path>` while
@@ -47,16 +61,6 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `--show` flag on `add` and `edit` to type secret values in the clear (and,
   on `edit`, to pre-fill and edit the current value in place).
 
-### Changed (breaking)
-
-- Key names are validated as environment-variable identifiers on `add`: they
-  must start with a letter or underscore and contain only ASCII letters, digits,
-  and underscores (e.g. `API_KEY`). Names that earlier versions accepted — such
-  as `API-KEY`, `my.key`, a name with spaces, or a non-ASCII name — are now
-  rejected at the prompt. Existing stored keys are unaffected: only newly added
-  keys are checked, and `edit`/`delete`/`loadEnv` still handle any name already
-  in the file.
-
 ### Security
 
 - Secret values are **masked at the prompt by default** on `add` and `edit`, so
@@ -84,12 +88,15 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   scripts, a CI check, and a one-time mechanical reformat.
 - TypeScript now targets ES2022 (native on every supported Node), so the build
   no longer downlevels `async`/`await` or classes.
-- CI lints and checks formatting once on Node 22 and builds/tests on Node 18,
-  20, 22, and 24.
+- CI lints and checks formatting once on Node 22 and builds/tests on Node 20,
+  22, and 24.
 - Dev dependencies: ESLint 10, `@eslint/js` 10, `typescript-eslint` 8.69. The
-  `yarn npm audit` deprecation warning for ESLint 9 is gone. Runtime
-  dependencies are unchanged; `inquirer` stays on 11 because 12+ requires
-  Node 20.17, which would drop Node 18 support.
+  `yarn npm audit` deprecation warning for ESLint 9 is gone.
+- `inquirer` upgraded to 12, and `@types/node` moved to 20 to match `engines`.
+  inquirer 12 ships a dual CommonJS/ESM build, so the CLI keeps working from
+  this package's CommonJS output across the whole Node 20 range. (inquirer 13+
+  is ESM-only, which would break `require("inquirer")` on Node 20.0–20.18 /
+  22.0–22.11, where `require(ESM)` is still flagged — so we stay on 12.)
 - `prepublishOnly` now runs lint, format check, and tests before building.
 
 ## [3.0.0] - 2026-08-10

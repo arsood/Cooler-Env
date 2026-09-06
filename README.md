@@ -41,7 +41,7 @@ npm install cooler-env
 yarn add cooler-env
 ```
 
-Requires **Node.js 18+**. Ships as a CommonJS build (importable from both `require` and ESM `import`) with TypeScript types included.
+Requires **Node.js 20+**. Ships as a CommonJS build (importable from both `require` and ESM `import`) with TypeScript types included.
 
 ## Quick start
 
@@ -195,7 +195,7 @@ yarn test test/loadEnv.test.ts          # a single file
 yarn test -t "returns secrets"          # a single test by name
 ```
 
-CI runs lint + build + test across Node 18, 20, and 22 on every push and pull request.
+CI runs lint + build + test across Node 20, 22, and 24 on every push and pull request.
 
 ## License
 
