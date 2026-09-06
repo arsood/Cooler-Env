@@ -6,10 +6,16 @@ import { printBanner } from "./lib/banner";
 import { CoolerEnvError } from "./lib/errors";
 import { run } from "./run";
 
-// Only decorate interactive sessions; keep piped stdout clean.
-if (process.stdout.isTTY) printBanner();
+const args = process.argv.slice(2);
 
-run(process.argv.slice(2)).catch((error: unknown) => {
+// Only decorate interactive sessions; keep piped stdout clean. Skip the banner
+// for --help/--version so their output stands alone.
+const isInfoOnly = args.some((a) =>
+  ["-h", "--help", "-v", "--version"].includes(a),
+);
+if (process.stdout.isTTY && !isInfoOnly) printBanner();
+
+run(args).catch((error: unknown) => {
   process.exitCode = 1;
 
   if (error instanceof CoolerEnvError) {

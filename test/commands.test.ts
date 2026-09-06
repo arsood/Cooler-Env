@@ -10,7 +10,10 @@ import init from "../src/commands/init";
 import add from "../src/commands/add";
 import edit from "../src/commands/edit";
 import deleteCmd from "../src/commands/delete";
+import list from "../src/commands/list";
 import { loadEnv } from "../src/loadEnv";
+import { writeSecrets } from "../src/lib/secrets";
+import { resolvePaths } from "../src/lib/paths";
 import { makeSandbox, Sandbox } from "./sandbox";
 
 const prompt = inquirer.prompt as unknown as jest.Mock;
@@ -196,5 +199,54 @@ describe("secret value masking", () => {
     const q = question("keyEditedValue");
     expect(q?.type).toBe("input");
     expect(q?.default).toBe("old");
+  });
+});
+
+describe("list", () => {
+  let sandbox: Sandbox;
+  let log: jest.SpyInstance;
+
+  beforeEach(async () => {
+    sandbox = makeSandbox();
+    prompt.mockReset();
+    log = jest.spyOn(console, "log").mockImplementation(() => {});
+    await init(ENV);
+  });
+
+  afterEach(() => {
+    log.mockRestore();
+    sandbox.restore();
+  });
+
+  it("prints key names sorted, one per line", async () => {
+    await writeSecrets(resolvePaths("test"), { B_KEY: "2", A_KEY: "1" });
+
+    log.mockClear(); // drop init's output
+    await list(ENV);
+
+    expect(log.mock.calls.map((c) => c[0])).toEqual(["A_KEY", "B_KEY"]);
+  });
+
+  it("prints KEY=value only with --values", async () => {
+    await writeSecrets(resolvePaths("test"), { A_KEY: "secret" });
+
+    await list(ENV);
+    expect(log).toHaveBeenLastCalledWith("A_KEY");
+
+    log.mockClear();
+    await list({ ...ENV, values: true });
+    expect(log).toHaveBeenLastCalledWith("A_KEY=secret");
+  });
+
+  it("reports when there are no keys", async () => {
+    await list(ENV);
+
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("No keys set."));
+  });
+
+  it("errors for an uninitialized environment", async () => {
+    await expect(list({ _: [], e: "nope" })).rejects.toThrow(
+      /Encryption key not found/,
+    );
   });
 });

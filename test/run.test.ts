@@ -8,6 +8,7 @@ import path from "path";
 
 import inquirer from "inquirer";
 import { run } from "../src/run";
+import { getVersion } from "../src/lib/usage";
 import { makeSandbox, Sandbox } from "./sandbox";
 
 const prompt = inquirer.prompt as unknown as jest.Mock;
@@ -16,14 +17,17 @@ describe("run (CLI dispatch)", () => {
   let sandbox: Sandbox;
 
   let log: jest.SpyInstance;
+  let error: jest.SpyInstance;
 
   beforeEach(() => {
     sandbox = makeSandbox();
     log = jest.spyOn(console, "log").mockImplementation(() => {});
+    error = jest.spyOn(console, "error").mockImplementation(() => {});
   });
 
   afterEach(() => {
     log.mockRestore();
+    error.mockRestore();
     sandbox.restore();
   });
 
@@ -85,5 +89,33 @@ describe("run (CLI dispatch)", () => {
       (q: { name: string }) => q.name === "keyValue",
     );
     expect(valueQ.type).toBe("input");
+  });
+
+  it.each([["--version"], ["-v"]])(
+    "prints the version for %s and dispatches no command",
+    async (flag) => {
+      await run([flag]);
+
+      expect(log).toHaveBeenCalledWith(getVersion());
+    },
+  );
+
+  it.each([["--help"], ["-h"]])("prints usage for %s", async (flag) => {
+    await run([flag]);
+
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("Usage:"));
+  });
+
+  it("warns on an unknown option but still runs the command", async () => {
+    await run(["init", "-e", "t", "--bogus"]);
+
+    expect(error).toHaveBeenCalledWith(
+      expect.stringContaining("unknown option --bogus"),
+    );
+    expect(fs.existsSync(path.join(sandbox.dir, "config", "t.key"))).toBe(true);
+  });
+
+  it("treats list as a valid command", async () => {
+    await expect(run(["list", "-e"])).rejects.toThrow(/-e option/);
   });
 });
