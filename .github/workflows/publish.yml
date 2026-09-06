@@ -20,6 +20,8 @@ jobs:
       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need tags so the version-tag check can find v<version>
 
       - name: Enable Corepack
         run: corepack enable
@@ -30,13 +32,23 @@ jobs:
           cache: yarn
           registry-url: https://registry.npmjs.org
 
-      - name: Verify the release tag matches package.json
+      - name: Verify the version is tagged
         run: |
-          TAG="${GITHUB_REF_NAME#v}"
           PKG="$(node -p "require('./package.json').version")"
-          if [ "$TAG" != "$PKG" ]; then
-            echo "::error::Release tag '$GITHUB_REF_NAME' does not match package.json version '$PKG'"
-            exit 1
+          if [ "${{ github.event_name }}" = "release" ]; then
+            # On a release, the event tag must match package.json.
+            TAG="${GITHUB_REF_NAME#v}"
+            if [ "$TAG" != "$PKG" ]; then
+              echo "::error::Release tag '$GITHUB_REF_NAME' does not match package.json version '$PKG'"
+              exit 1
+            fi
+          else
+            # On a manual dispatch, require a matching v<version> tag to exist,
+            # so we never publish an untagged version by accident.
+            if ! git rev-parse -q --verify "refs/tags/v$PKG" >/dev/null; then
+              echo "::error::No tag 'v$PKG' exists for package.json version '$PKG'"
+              exit 1
+            fi
           fi
 
       - name: Install dependencies
