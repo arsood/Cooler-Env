@@ -4,6 +4,47 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `-p` with an absolute path wrote files under `<cwd>/<absolute path>` while
+  gitignoring the real absolute path. Paths are now resolved with
+  `path.resolve`, so absolute and relative config directories both work.
+- The `.gitignore` entry written by `init` is now derived from the key's real
+  path relative to the current directory in POSIX form, anchored with a leading
+  `/`, and with gitignore metacharacters (`#`, `!`, `[`, `*`, `?`) escaped. So
+  `-p ./config/` yields `/config/dev.key` instead of the unmatchable
+  `./config//dev.key`, `-p '#secrets'` no longer writes a comment line, and
+  `-p .` no longer ignores every `dev.key` at any depth. A key outside the
+  current directory, or one whose path contains a backslash, produces a warning
+  on stderr instead of a broken entry, and a `.gitignore` that cannot be
+  written is reported as a warning rather than aborting after the key exists.
+  Entries written by earlier versions are still recognized and not duplicated.
+- Environment names are validated in both the CLI and `loadEnv`: they must be
+  non-blank, at most 200 characters, and cannot be `.`, `..`, or contain path
+  separators, so `-e ../escape` can no longer write files outside the config
+  directory. Other characters (unicode, `@`, spaces) remain allowed, so
+  existing environments keep working. Repeating `-e` or `-p` is rejected
+  instead of joining the values into `a,b`.
+- `-e` and `-p` are parsed as strings, so `-p 123` is no longer silently
+  ignored. A bare `-p` (or `-p` followed by another flag) is an error instead
+  of silently falling back to `config/`, and `--no-e` / `-e "  "` get the
+  usual "-e option" message.
+- Command lookup no longer resolves `Object.prototype` members: running
+  `cooler-env constructor` now fails with the usual "valid command" error
+  instead of exiting 0 silently.
+- CLI errors are printed to stderr, and the banner is only shown on a TTY so
+  piped output stays clean.
+- A decrypted payload that is valid JSON but not an object (`null`, an array)
+  now throws a `CoolerEnvError` instead of a raw `TypeError`.
+- A freshly created `.gitignore` no longer starts with a blank line.
+
+### Added
+
+- `CoolerEnvError` is exported from the package entry point so callers can
+  `instanceof` it, as the README already documented.
+
 ## [3.0.0] - 2026-08-10
 
 The v3 line is a security and API overhaul. **It is a hard break from v2:**

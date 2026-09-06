@@ -1,7 +1,6 @@
 import { Secrets } from "./lib/types";
-import { resolvePaths } from "./lib/paths";
+import { resolvePaths, validateEnvName } from "./lib/paths";
 import { readSecrets } from "./lib/secrets";
-import { CoolerEnvError } from "./lib/errors";
 
 export interface LoadEnvOptions {
   /** Directory holding the key/encrypted files. Defaults to `config`. */
@@ -28,13 +27,7 @@ export const loadEnv = async (
   env: string,
   { configPath, inject = false, override = false }: LoadEnvOptions = {}
 ): Promise<Secrets> => {
-  if (!env) {
-    throw new CoolerEnvError(
-      "loadEnv requires a valid environment name to be passed as an argument."
-    );
-  }
-
-  const paths = resolvePaths(env, configPath);
+  const paths = resolvePaths(validateEnvName(env), configPath);
   const secrets = await readSecrets(paths);
 
   if (inject) {

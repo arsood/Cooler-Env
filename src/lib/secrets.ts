@@ -116,6 +116,12 @@ export const decryptSecrets = async (
     );
   }
 
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new CoolerEnvError(
+      "Could not read secrets — decrypted content is not a key/value object."
+    );
+  }
+
   return sanitize(parsed as Record<string, unknown>);
 };
 

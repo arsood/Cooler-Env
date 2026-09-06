@@ -13,7 +13,11 @@ export interface Sandbox {
  * real repo, its .gitignore, or the developer's config.
  */
 export const makeSandbox = (): Sandbox => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "coolerenv-"));
+  // realpath so `dir` matches process.cwd() on macOS, where the temp dir is
+  // a symlink (/var -> /private/var).
+  const dir = fs.realpathSync(
+    fs.mkdtempSync(path.join(os.tmpdir(), "coolerenv-"))
+  );
   const previousCwd = process.cwd();
   process.chdir(dir);
 

@@ -69,12 +69,12 @@ All commands share the same two options:
 
 | Option          | Required | Description                                                                    |
 | --------------- | -------- | ------------------------------------------------------------------------------ |
-| `-e <env>`      | ✅       | Environment name (e.g. `development`, `production`).                            |
-| `-p <path>`     | ❌       | Directory for the key/encrypted files. Defaults to `config`.                   |
+| `-e <env>`      | ✅       | Environment name (e.g. `development`, `production`). Becomes a file name, so it cannot contain `/` or `\`. |
+| `-p <path>`     | ❌       | Directory for the key/encrypted files, relative to the current directory or absolute. Defaults to `config`. |
 
 ### `init`
 
-Sets up a new environment, generating the `.key` and `.yml.enc` files and adding the key to `.gitignore`.
+Sets up a new environment, generating the `.key` and `.yml.enc` files and adding the key to the `.gitignore` in the current directory (run it from your repository root). If the key lives outside the current directory, `init` warns instead, and you must ignore it yourself.
 
 ```bash
 cooler-env init -e development
@@ -100,7 +100,7 @@ cooler-env edit -e development
 
 ### `delete`
 
-Opens an interactive prompt to pick a key to remove.
+Opens an interactive prompt to pick one or more keys to remove.
 
 ```bash
 cooler-env delete -e development
@@ -148,13 +148,19 @@ const env: Secrets = await loadEnv("production", { inject: true } satisfies Load
 
 #### Error handling
 
-`loadEnv` rejects with a `CoolerEnvError` for expected failures — a missing key/encrypted file, a wrong key, or a tampered blob:
+`loadEnv` rejects with a `CoolerEnvError` for expected failures — a missing key/encrypted file, a wrong key, or a tampered blob. It is exported so you can tell those apart from unexpected errors:
 
 ```javascript
+import { loadEnv, CoolerEnvError } from "cooler-env";
+
 try {
   await loadEnv("production");
 } catch (err) {
-  console.error(err.message); // e.g. "Encrypted file not found at config/production.yml.enc."
+  if (err instanceof CoolerEnvError) {
+    console.error(err.message); // e.g. "Encrypted file not found at /app/config/production.yml.enc."
+  } else {
+    throw err;
+  }
 }
 ```
 

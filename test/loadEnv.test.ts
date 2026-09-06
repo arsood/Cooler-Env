@@ -18,18 +18,45 @@ const ENV = { _: [], e: "test" };
 describe("loadEnv", () => {
   let sandbox: Sandbox;
 
+  let log: jest.SpyInstance;
+
   beforeEach(() => {
     sandbox = makeSandbox();
     prompt.mockReset();
+    log = jest.spyOn(console, "log").mockImplementation(() => {});
   });
 
   afterEach(() => {
+    log.mockRestore();
     sandbox.restore();
     delete process.env.TOKEN;
   });
 
   it("throws without an environment name", async () => {
     await expect(loadEnv("")).rejects.toThrow(/valid environment name/);
+    await expect(loadEnv(undefined as unknown as string)).rejects.toThrow(
+      /valid environment name/
+    );
+  });
+
+  it("rejects an environment name that escapes the config directory", async () => {
+    await expect(loadEnv("../etc")).rejects.toThrow(/Invalid environment name/);
+    await expect(loadEnv("a/b")).rejects.toThrow(/Invalid environment name/);
+  });
+
+  it("accepts an absolute configPath", async () => {
+    const abs = path.join(sandbox.dir, "elsewhere");
+    await init({ _: [], e: "test", p: abs });
+    prompt.mockResolvedValueOnce({ keyName: "TOKEN", keyValue: "abc123" });
+    await add({ _: [], e: "test", p: abs });
+
+    const secrets = await loadEnv("test", { configPath: abs });
+    expect(secrets.TOKEN).toBe("abc123");
+  });
+
+  it("exports CoolerEnvError so callers can instanceof it", async () => {
+    const { CoolerEnvError } = await import("../src/index");
+    await expect(loadEnv("test")).rejects.toBeInstanceOf(CoolerEnvError);
   });
 
   it("throws when the environment is not initialized", async () => {
