@@ -4,7 +4,7 @@ import inquirer from "inquirer";
 import { Argv } from "../lib/types";
 import { resolvePaths, requireEnv, configPathOf } from "../lib/paths";
 import { assertInitialized } from "../lib/guards";
-import { readSecrets, writeSecrets } from "../lib/secrets";
+import { readSecretsWithKey, writeSecrets } from "../lib/secrets";
 import { CoolerEnvError } from "../lib/errors";
 
 const deleteCmd = async (argv: Argv): Promise<void> => {
@@ -12,7 +12,7 @@ const deleteCmd = async (argv: Argv): Promise<void> => {
   const paths = resolvePaths(env, configPathOf(argv));
   assertInitialized(paths, env);
 
-  const secrets = await readSecrets(paths);
+  const { secrets, secretKey } = await readSecretsWithKey(paths);
   const keys = Object.keys(secrets);
 
   if (keys.length === 0) {
@@ -37,7 +37,7 @@ const deleteCmd = async (argv: Argv): Promise<void> => {
     delete secrets[key];
   }
 
-  await writeSecrets(paths, secrets);
+  await writeSecrets(paths, secrets, secretKey);
 
   console.log(chalk.green("Done! 🌟"));
 };

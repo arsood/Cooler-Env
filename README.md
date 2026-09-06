@@ -84,9 +84,9 @@ cooler-env init -e development
 
 ### `add`
 
-Opens an interactive prompt to add a new key/value pair. The value is **masked** as you type so it isn't echoed to the terminal or captured in scrollback. Pass `--show` to type it in the clear.
+Opens an interactive prompt to add a new key/value pair. The value is **hidden** as you type — not echoed to the terminal, and its length isn't shown either. Pass `--show` to type it in the clear.
 
-Key names must be valid environment-variable identifiers — start with a letter or underscore, then letters, digits, or underscores (e.g. `API_KEY`).
+Key names must be valid environment-variable identifiers — start with a letter or underscore, then letters, digits, or underscores (e.g. `API_KEY`). Values may be anything, including an empty string.
 
 ```bash
 cooler-env add -e development
@@ -95,7 +95,7 @@ cooler-env add -e development --show   # reveal the value while typing
 
 ### `edit`
 
-Opens an interactive prompt to pick an existing key and set a new value. The new value is **masked** by default, and the current value is not pre-filled. Pass `--show` to type in the clear and edit the current value in place.
+Opens an interactive prompt to pick an existing key and set a new value. The new value is **hidden** by default (no echo, no length shown), and the current value is not pre-filled — leave the prompt **blank to keep the current value** unchanged, so a stray Enter can't erase a secret. Pass `--show` to type in the clear, with the current value pre-filled as an editable default.
 
 ```bash
 cooler-env edit -e development

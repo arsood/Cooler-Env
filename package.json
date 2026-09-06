@@ -33,13 +33,11 @@
   },
   "dependencies": {
     "chalk": "^4.1.2",
-    "figlet": "^1.7.0",
     "inquirer": "^12",
     "minimist": "^1.2.8"
   },
   "devDependencies": {
     "@eslint/js": "^10",
-    "@types/figlet": "^1.5.8",
     "@types/jest": "^30.0.0",
     "@types/minimist": "^1.2.5",
     "@types/node": "^20",

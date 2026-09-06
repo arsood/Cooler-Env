@@ -2,6 +2,7 @@ import fs from "fs";
 
 import { Paths } from "./types";
 import { CoolerEnvError } from "./errors";
+import { DANGEROUS_KEYS } from "./constants";
 
 /** Ensure an environment has been initialized before reading/mutating it. */
 export const assertInitialized = (paths: Paths, env: string): void => {
@@ -17,8 +18,6 @@ export const assertInitialized = (paths: Paths, env: string): void => {
     );
   }
 };
-
-const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 // A valid environment-variable name: a letter or underscore, then letters,
 // digits, or underscores. Keeps stored keys usable as real env vars once
@@ -37,7 +36,3 @@ export const validateKeyName = (value: string): true | string => {
 
   return true;
 };
-
-/** inquirer validator: non-empty value. */
-export const validateValue = (value: string): true | string =>
-  value.length ? true : "Please enter a value.";

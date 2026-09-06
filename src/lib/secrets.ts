@@ -5,9 +5,10 @@ import { promisify } from "util";
 
 import { Paths, Secrets } from "./types";
 import { CoolerEnvError } from "./errors";
+import { DANGEROUS_KEYS } from "./constants";
 
 const scrypt = promisify(crypto.scrypt) as (
-  password: string,
+  secretKey: string,
   salt: Buffer,
   keylen: number,
 ) => Promise<Buffer>;
@@ -36,12 +37,8 @@ const MAGIC = Buffer.from("CENV", "ascii");
 const FORMAT_VERSION = 1;
 const VERSION_HEADER_LENGTH = MAGIC.length + 1;
 
-// Keys that would let a decrypted payload poison Object.prototype if it were
-// ever spread onto another object (e.g. process.env). Never round-trip these.
-const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
-
-const deriveKey = (password: string, salt: Buffer): Promise<Buffer> =>
-  scrypt(password, salt, KEY_LENGTH);
+const deriveKey = (secretKey: string, salt: Buffer): Promise<Buffer> =>
+  scrypt(secretKey, salt, KEY_LENGTH);
 
 const readKey = async (paths: Paths): Promise<string> => {
   try {
@@ -73,11 +70,11 @@ const currentHeader = (): Buffer =>
 /** Encrypt a secrets object into the on-disk blob format. */
 export const encryptSecrets = async (
   secrets: Secrets,
-  password: string,
+  secretKey: string,
 ): Promise<Buffer> => {
   const salt = crypto.randomBytes(SALT_LENGTH);
   const iv = crypto.randomBytes(IV_LENGTH);
-  const key = await deriveKey(password, salt);
+  const key = await deriveKey(secretKey, salt);
   const header = currentHeader();
 
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
@@ -101,7 +98,7 @@ const decodeBody = async (
   blob: Buffer,
   offset: number,
   aad: Buffer | undefined,
-  password: string,
+  secretKey: string,
 ): Promise<Secrets> => {
   if (blob.length < offset + BODY_HEADER_LENGTH) {
     throw new CoolerEnvError("The encrypted file is truncated or corrupt.");
@@ -118,7 +115,7 @@ const decodeBody = async (
 
   const decipher = crypto.createDecipheriv(
     ALGORITHM,
-    await deriveKey(password, salt),
+    await deriveKey(secretKey, salt),
     iv,
   );
   if (aad) decipher.setAAD(aad);
@@ -157,7 +154,7 @@ const decodeBody = async (
 /** Decrypt an on-disk blob back into a sanitized secrets object. */
 export const decryptSecrets = async (
   blob: Buffer,
-  password: string,
+  secretKey: string,
 ): Promise<Secrets> => {
   // No magic prefix → a v3 (headerless) body, read for backward compatibility.
   // The length guard also keeps a short blob (e.g. exactly "CENV") out of the
@@ -167,7 +164,7 @@ export const decryptSecrets = async (
     blob.subarray(0, MAGIC.length).equals(MAGIC);
 
   if (!hasMagic) {
-    return decodeBody(blob, 0, undefined, password);
+    return decodeBody(blob, 0, undefined, secretKey);
   }
 
   const version = blob[MAGIC.length];
@@ -175,7 +172,7 @@ export const decryptSecrets = async (
 
   if (version === FORMAT_VERSION) {
     try {
-      return await decodeBody(blob, VERSION_HEADER_LENGTH, header, password);
+      return await decodeBody(blob, VERSION_HEADER_LENGTH, header, secretKey);
     } catch (err) {
       // A real v4 blob that failed to authenticate (wrong key or tampering)
       // lands here — but so would the ~1-in-2^32 case where a v3 blob's random
@@ -183,7 +180,7 @@ export const decryptSecrets = async (
       // if that also fails, the file really was a bad v4 blob, so re-surface
       // the original error.
       try {
-        return await decodeBody(blob, 0, undefined, password);
+        return await decodeBody(blob, 0, undefined, secretKey);
       } catch {
         throw err;
       }
@@ -193,7 +190,7 @@ export const decryptSecrets = async (
   // Unknown version: a future format we can't read, or the same rare v3 magic
   // collision. Attempt a headerless read before declaring the file unreadable.
   try {
-    return await decodeBody(blob, 0, undefined, password);
+    return await decodeBody(blob, 0, undefined, secretKey);
   } catch {
     throw new CoolerEnvError(
       `Unsupported encrypted file format version ${version}. Upgrade cooler-env to read this file.`,
@@ -201,9 +198,15 @@ export const decryptSecrets = async (
   }
 };
 
-/** Decrypt the environment's encrypted file into a plain object. */
-export const readSecrets = async (paths: Paths): Promise<Secrets> => {
-  const password = await readKey(paths);
+/**
+ * Decrypt the environment's encrypted file, returning both the secrets and the
+ * key that unlocked them so a follow-up `writeSecrets` can reuse it instead of
+ * reading the key file a second time.
+ */
+export const readSecretsWithKey = async (
+  paths: Paths,
+): Promise<{ secrets: Secrets; secretKey: string }> => {
+  const secretKey = await readKey(paths);
 
   let blob: Buffer;
   try {
@@ -217,30 +220,42 @@ export const readSecrets = async (paths: Paths): Promise<Secrets> => {
     throw err;
   }
 
-  return decryptSecrets(blob, password);
+  return { secrets: await decryptSecrets(blob, secretKey), secretKey };
 };
+
+/** Decrypt the environment's encrypted file into a plain object. */
+export const readSecrets = async (paths: Paths): Promise<Secrets> =>
+  (await readSecretsWithKey(paths)).secrets;
 
 /**
  * Encrypt `secrets` and atomically replace the environment's encrypted file.
  *
  * Ciphertext is produced in memory and written to a uniquely-named temp file
  * that is renamed over the target, so plaintext never touches disk and an
- * interrupted run cannot leave a half-written file.
+ * interrupted run cannot leave a half-written file. Pass `secretKey` to reuse a
+ * key already read this run (e.g. from `readSecretsWithKey`); otherwise the key
+ * file is read here.
  */
 export const writeSecrets = async (
   paths: Paths,
   secrets: Secrets,
+  secretKey?: string,
 ): Promise<void> => {
-  const blob = await encryptSecrets(secrets, await readKey(paths));
+  const blob = await encryptSecrets(
+    secrets,
+    secretKey ?? (await readKey(paths)),
+  );
   const staging = path.join(
     paths.configDir,
     `.coolerenv-${process.pid}-${crypto.randomBytes(6).toString("hex")}.tmp`,
   );
 
   try {
-    fs.writeFileSync(staging, blob, { mode: 0o600 });
-    fs.renameSync(staging, paths.encryptedFile);
+    // `wx` fails rather than following/overwriting a pre-existing path, so the
+    // "uniquely named temp" invariant is enforced, not just assumed.
+    await fs.promises.writeFile(staging, blob, { mode: 0o600, flag: "wx" });
+    await fs.promises.rename(staging, paths.encryptedFile);
   } finally {
-    if (fs.existsSync(staging)) fs.unlinkSync(staging);
+    await fs.promises.rm(staging, { force: true });
   }
 };

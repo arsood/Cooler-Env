@@ -20,6 +20,15 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   keys are checked, and `edit`/`delete`/`loadEnv` still handle any name already
   in the file.
 
+### Changed
+
+- `add` now accepts an **empty-string value** (a legitimate value for some
+  variables; previously the prompt rejected `""`). On `edit`, a **blank entry
+  keeps the current value** — in both masked and `--show` modes — so a stray
+  Enter can never silently erase a secret.
+- Aborting a prompt with Ctrl+C now exits with code **130** (the SIGINT
+  convention) instead of 1, so scripts can tell an interrupt from an error.
+
 ### Fixed
 
 - `-p` with an absolute path wrote files under `<cwd>/<absolute path>` while
@@ -63,10 +72,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Security
 
-- Secret values are **masked at the prompt by default** on `add` and `edit`, so
-  they are no longer echoed to the terminal or left in scrollback. `edit` also
-  no longer pre-fills the current value in the clear. Use `--show` to opt back
-  into visible input.
+- Secret values are **hidden at the prompt by default** on `add` and `edit`:
+  the value is not echoed to the terminal, and (unlike a `*`-masked prompt) its
+  length is not shown either, so nothing about the secret lands in scrollback.
+  `edit` also no longer pre-fills the current value in the clear. Use `--show`
+  to opt back into visible input.
 - Re-initializing an existing environment now resets the key file to `0600`.
   Previously `writeFileSync`'s `mode` was ignored when overwriting an existing
   file, so a key file with looser permissions kept them across a re-`init`.
@@ -92,6 +102,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   22, and 24.
 - Dev dependencies: ESLint 10, `@eslint/js` 10, `typescript-eslint` 8.69. The
   `yarn npm audit` deprecation warning for ESLint 9 is gone.
+- Dropped the `figlet` dependency (~7 MB) in favour of a small inlined banner,
+  shrinking the install. The banner is unchanged and still TTY-only.
+- `writeSecrets` no longer uses synchronous `fs`, so the whole crypto path is
+  async; and `add`/`edit`/`delete` read the key file once per run (via
+  `readSecretsWithKey`) instead of twice.
+- The `DANGEROUS_KEYS` prototype-pollution list now lives in one module
+  (`src/lib/constants.ts`), shared by the key-name validator and the payload
+  sanitizer instead of being duplicated.
 - `inquirer` upgraded to 12, and `@types/node` moved to 20 to match `engines`.
   inquirer 12 ships a dual CommonJS/ESM build, so the CLI keeps working from
   this package's CommonJS output across the whole Node 20 range. (inquirer 13+

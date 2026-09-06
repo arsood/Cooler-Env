@@ -3,8 +3,8 @@ import inquirer from "inquirer";
 
 import { Argv } from "../lib/types";
 import { resolvePaths, requireEnv, configPathOf } from "../lib/paths";
-import { assertInitialized, validateValue } from "../lib/guards";
-import { readSecrets, writeSecrets } from "../lib/secrets";
+import { assertInitialized } from "../lib/guards";
+import { readSecretsWithKey, writeSecrets } from "../lib/secrets";
 import { CoolerEnvError } from "../lib/errors";
 
 const edit = async (argv: Argv): Promise<void> => {
@@ -12,7 +12,7 @@ const edit = async (argv: Argv): Promise<void> => {
   const paths = resolvePaths(env, configPathOf(argv));
   assertInitialized(paths, env);
 
-  const secrets = await readSecrets(paths);
+  const { secrets, secretKey } = await readSecretsWithKey(paths);
   const keys = Object.keys(secrets);
 
   if (keys.length === 0) {
@@ -37,15 +37,25 @@ const edit = async (argv: Argv): Promise<void> => {
     {
       name: "keyEditedValue",
       type: show ? "input" : "password",
-      mask: show ? undefined : "*",
-      message: "What is the new value of this key?",
+      message:
+        "What is the new value of this key? (leave blank to keep the current value)",
       default: show ? secrets[keyToEdit] : undefined,
-      validate: validateValue,
     },
   ]);
 
-  secrets[keyToEdit] = keyEditedValue;
-  await writeSecrets(paths, secrets);
+  // A blank entry means "keep the current value", so a stray Enter can never
+  // silently erase a secret — the same meaning in both modes. (With `--show`,
+  // inquirer's input already returns the current value as its default on a
+  // blank line; masked, an empty string maps to the same thing here.)
+  const nextValue = keyEditedValue === "" ? secrets[keyToEdit] : keyEditedValue;
+
+  if (nextValue === secrets[keyToEdit]) {
+    console.log(chalk.yellow("No change."));
+    return;
+  }
+
+  secrets[keyToEdit] = nextValue;
+  await writeSecrets(paths, secrets, secretKey);
 
   console.log(chalk.green("Done! 🌟"));
 };

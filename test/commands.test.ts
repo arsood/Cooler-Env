@@ -3,6 +3,8 @@ jest.mock("inquirer", () => ({
   default: { prompt: jest.fn() },
 }));
 
+import fs from "fs";
+
 import inquirer from "inquirer";
 import init from "../src/commands/init";
 import add from "../src/commands/add";
@@ -47,6 +49,40 @@ describe("add / edit / delete round-trips", () => {
 
     prompt.mockResolvedValueOnce({ keyName: "API_KEY", keyValue: "two" });
     await expect(add(ENV)).rejects.toThrow(/already exists/);
+  });
+
+  it("allows an empty-string value", async () => {
+    prompt.mockResolvedValueOnce({ keyName: "EMPTY", keyValue: "" });
+    await add(ENV);
+
+    const secrets = await loadEnv("test");
+    expect(secrets.EMPTY).toBe("");
+  });
+
+  it("keeps the current value when edit is submitted blank", async () => {
+    prompt.mockResolvedValueOnce({ keyName: "API_KEY", keyValue: "keep-me" });
+    await add(ENV);
+
+    prompt
+      .mockResolvedValueOnce({ keyToEdit: "API_KEY" })
+      .mockResolvedValueOnce({ keyEditedValue: "" }); // a blank submission
+    await edit(ENV);
+
+    const secrets = await loadEnv("test");
+    expect(secrets.API_KEY).toBe("keep-me"); // not blanked
+  });
+
+  it("reads the key file only once per mutating command", async () => {
+    const readFile = jest.spyOn(fs.promises, "readFile");
+    prompt.mockResolvedValueOnce({ keyName: "API_KEY", keyValue: "v" });
+    await add(ENV);
+
+    const keyReads = readFile.mock.calls.filter((c) =>
+      String(c[0]).endsWith(".key"),
+    ).length;
+    readFile.mockRestore();
+
+    expect(keyReads).toBe(1);
   });
 
   it("edits an existing key's value", async () => {
@@ -116,11 +152,15 @@ describe("secret value masking", () => {
     sandbox.restore();
   });
 
-  it("masks the value prompt on add by default", async () => {
+  it("masks the value prompt on add by default (fully hidden, no mask)", async () => {
     prompt.mockResolvedValueOnce({ keyName: "API_KEY", keyValue: "s" });
     await add(ENV);
 
-    expect(question("keyValue")).toMatchObject({ type: "password", mask: "*" });
+    const q = question("keyValue");
+    expect(q?.type).toBe("password");
+    // No `mask` -> the password prompt hides the value entirely, including its
+    // length. A "*" mask would leak the length into scrollback.
+    expect(q?.mask).toBeUndefined();
   });
 
   it("shows the value prompt on add with --show", async () => {

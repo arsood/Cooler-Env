@@ -72,8 +72,12 @@ describe("compiled CLI smoke (real inquirer)", () => {
   it("renders the add prompt without a fatal error", () => {
     expect(runCli(["init", "-e", "t"], sandbox.dir).status).toBe(0);
 
-    const { output } = runCli(["add", "-e", "t"], sandbox.dir);
+    const { output, status } = runCli(["add", "-e", "t"], sandbox.dir);
     expect(output).not.toMatch(FATAL);
+    // Closed stdin aborts the prompt (ExitPromptError), which exits 130 — the
+    // SIGINT convention wired up in cli.ts.
+    expect(status).toBe(130);
+    expect(output).toContain("Cancelled.");
   });
 
   it("renders the edit key-picker prompt without a fatal error", async () => {
