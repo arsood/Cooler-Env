@@ -26,8 +26,10 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "jest",
-    "prepublishOnly": "yarn build"
+    "prepublishOnly": "yarn lint && yarn format:check && yarn test && yarn build"
   },
   "dependencies": {
     "chalk": "^4.1.2",
