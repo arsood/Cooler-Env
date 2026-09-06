@@ -27,7 +27,7 @@ describe("validateEnvName", () => {
     "rejects %j",
     (env) => {
       expect(() => validateEnvName(env)).toThrow(/environment name/);
-    }
+    },
   );
 
   it("rejects over-long names with a friendly error", () => {
@@ -56,9 +56,15 @@ describe("requireEnv / configPathOf", () => {
   it("returns undefined for an absent -p and rejects empty, negated, or repeated ones", () => {
     expect(configPathOf({ _: [] })).toBeUndefined();
     expect(configPathOf({ _: [], p: "secrets" })).toBe("secrets");
-    expect(() => configPathOf({ _: [], p: "" })).toThrow(/requires a directory/);
-    expect(() => configPathOf({ _: [], p: " " })).toThrow(/requires a directory/);
-    expect(() => configPathOf({ _: [], p: false })).toThrow(/requires a directory/);
+    expect(() => configPathOf({ _: [], p: "" })).toThrow(
+      /requires a directory/,
+    );
+    expect(() => configPathOf({ _: [], p: " " })).toThrow(
+      /requires a directory/,
+    );
+    expect(() => configPathOf({ _: [], p: false })).toThrow(
+      /requires a directory/,
+    );
     expect(() => configPathOf({ _: [], p: ["a", "b"] })).toThrow(/only once/);
   });
 });
@@ -77,13 +83,13 @@ describe("resolvePaths", () => {
     expect(paths.configDir).toBe(path.join(sandbox.dir, "config"));
     expect(paths.keyFile).toBe(path.join(sandbox.dir, "config", "test.key"));
     expect(paths.encryptedFile).toBe(
-      path.join(sandbox.dir, "config", "test.yml.enc")
+      path.join(sandbox.dir, "config", "test.yml.enc"),
     );
   });
 
   it("normalizes a relative config path", () => {
     expect(resolvePaths("test", "./secrets/").configDir).toBe(
-      path.join(sandbox.dir, "secrets")
+      path.join(sandbox.dir, "secrets"),
     );
   });
 

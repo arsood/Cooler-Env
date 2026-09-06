@@ -34,11 +34,9 @@ describe("run (CLI dispatch)", () => {
 
   it("does not resolve Object.prototype members as commands", async () => {
     await expect(run(["constructor", "-e", "x"])).rejects.toThrow(
-      /valid command/
+      /valid command/,
     );
-    await expect(run(["toString", "-e", "x"])).rejects.toThrow(
-      /valid command/
-    );
+    await expect(run(["toString", "-e", "x"])).rejects.toThrow(/valid command/);
   });
 
   it("keeps numeric-looking -e / -p values as strings", async () => {
@@ -55,17 +53,17 @@ describe("run (CLI dispatch)", () => {
 
   it("rejects a repeated -e instead of joining the values", async () => {
     await expect(run(["init", "-e", "a", "-e", "b"])).rejects.toThrow(
-      /only once/
+      /only once/,
     );
     expect(fs.existsSync(path.join(sandbox.dir, "config"))).toBe(false);
   });
 
   it("rejects a bare -p instead of silently using config/", async () => {
     await expect(run(["init", "-e", "dev", "-p"])).rejects.toThrow(
-      /-p option requires/
+      /-p option requires/,
     );
     await expect(run(["init", "-e", "dev", "-p", "-x"])).rejects.toThrow(
-      /-p option requires/
+      /-p option requires/,
     );
     expect(fs.existsSync(path.join(sandbox.dir, "config"))).toBe(false);
   });

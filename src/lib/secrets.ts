@@ -9,7 +9,7 @@ import { CoolerEnvError } from "./errors";
 const scrypt = promisify(crypto.scrypt) as (
   password: string,
   salt: Buffer,
-  keylen: number
+  keylen: number,
 ) => Promise<Buffer>;
 
 // Authenticated encryption. The on-disk format is a single binary blob:
@@ -59,7 +59,7 @@ const sanitize = (raw: Record<string, unknown>): Secrets => {
 /** Encrypt a secrets object into the on-disk blob format. */
 export const encryptSecrets = async (
   secrets: Secrets,
-  password: string
+  password: string,
 ): Promise<Buffer> => {
   const salt = crypto.randomBytes(SALT_LENGTH);
   const iv = crypto.randomBytes(IV_LENGTH);
@@ -77,7 +77,7 @@ export const encryptSecrets = async (
 /** Decrypt an on-disk blob back into a sanitized secrets object. */
 export const decryptSecrets = async (
   blob: Buffer,
-  password: string
+  password: string,
 ): Promise<Secrets> => {
   if (blob.length < HEADER_LENGTH) {
     throw new CoolerEnvError("The encrypted file is truncated or corrupt.");
@@ -91,7 +91,7 @@ export const decryptSecrets = async (
   const decipher = crypto.createDecipheriv(
     ALGORITHM,
     await deriveKey(password, salt),
-    iv
+    iv,
   );
   decipher.setAuthTag(authTag);
 
@@ -103,7 +103,7 @@ export const decryptSecrets = async (
     ]).toString("utf8");
   } catch {
     throw new CoolerEnvError(
-      "Could not decrypt secrets — the key is wrong or the file has been tampered with."
+      "Could not decrypt secrets — the key is wrong or the file has been tampered with.",
     );
   }
 
@@ -112,13 +112,13 @@ export const decryptSecrets = async (
     parsed = JSON.parse(plaintext);
   } catch {
     throw new CoolerEnvError(
-      "Could not read secrets — decrypted content is not valid JSON."
+      "Could not read secrets — decrypted content is not valid JSON.",
     );
   }
 
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     throw new CoolerEnvError(
-      "Could not read secrets — decrypted content is not a key/value object."
+      "Could not read secrets — decrypted content is not a key/value object.",
     );
   }
 
@@ -135,7 +135,7 @@ export const readSecrets = async (paths: Paths): Promise<Secrets> => {
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") {
       throw new CoolerEnvError(
-        `Encrypted file not found at ${paths.encryptedFile}.`
+        `Encrypted file not found at ${paths.encryptedFile}.`,
       );
     }
     throw err;
@@ -153,12 +153,12 @@ export const readSecrets = async (paths: Paths): Promise<Secrets> => {
  */
 export const writeSecrets = async (
   paths: Paths,
-  secrets: Secrets
+  secrets: Secrets,
 ): Promise<void> => {
   const blob = await encryptSecrets(secrets, await readKey(paths));
   const staging = path.join(
     paths.configDir,
-    `.coolerenv-${process.pid}-${crypto.randomBytes(6).toString("hex")}.tmp`
+    `.coolerenv-${process.pid}-${crypto.randomBytes(6).toString("hex")}.tmp`,
   );
 
   try {

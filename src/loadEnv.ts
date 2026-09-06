@@ -25,7 +25,7 @@ export interface LoadEnvOptions {
  */
 export const loadEnv = async (
   env: string,
-  { configPath, inject = false, override = false }: LoadEnvOptions = {}
+  { configPath, inject = false, override = false }: LoadEnvOptions = {},
 ): Promise<Secrets> => {
   const paths = resolvePaths(validateEnvName(env), configPath);
   const secrets = await readSecrets(paths);

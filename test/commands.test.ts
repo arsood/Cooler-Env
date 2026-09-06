@@ -83,7 +83,7 @@ describe("add / edit / delete round-trips", () => {
   it("errors on add for an uninitialized environment", async () => {
     prompt.mockResolvedValueOnce({ keyName: "X", keyValue: "y" });
     await expect(add({ _: [], e: "nope" })).rejects.toThrow(
-      /Encryption key not found/
+      /Encryption key not found/,
     );
   });
 });

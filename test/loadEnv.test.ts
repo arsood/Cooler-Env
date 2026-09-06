@@ -35,7 +35,7 @@ describe("loadEnv", () => {
   it("throws without an environment name", async () => {
     await expect(loadEnv("")).rejects.toThrow(/valid environment name/);
     await expect(loadEnv(undefined as unknown as string)).rejects.toThrow(
-      /valid environment name/
+      /valid environment name/,
     );
   });
 

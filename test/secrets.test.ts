@@ -22,7 +22,7 @@ describe("encryptSecrets / decryptSecrets", () => {
     const blob = await encryptSecrets({ A: "1" }, KEY);
 
     await expect(decryptSecrets(blob, "b".repeat(64))).rejects.toThrow(
-      /wrong|tampered/
+      /wrong|tampered/,
     );
   });
 
@@ -35,7 +35,7 @@ describe("encryptSecrets / decryptSecrets", () => {
 
   it("rejects a truncated blob", async () => {
     await expect(decryptSecrets(Buffer.alloc(8), KEY)).rejects.toThrow(
-      /truncated or corrupt/
+      /truncated or corrupt/,
     );
   });
 
@@ -45,16 +45,16 @@ describe("encryptSecrets / decryptSecrets", () => {
       const blob = await encryptSecrets(JSON.parse(json), KEY);
 
       await expect(decryptSecrets(blob, KEY)).rejects.toThrow(
-        /not a key\/value object/
+        /not a key\/value object/,
       );
-    }
+    },
   );
 
   it("strips prototype-polluting keys", async () => {
     // Encrypt a raw payload that contains a dangerous key.
     const blob = await encryptSecrets(
       JSON.parse('{"__proto__":"x","SAFE":"ok"}'),
-      KEY
+      KEY,
     );
     const result = await decryptSecrets(blob, KEY);
 

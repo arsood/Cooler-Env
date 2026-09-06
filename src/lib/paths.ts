@@ -17,19 +17,19 @@ const MAX_ENV_NAME_LENGTH = 200;
 export const validateEnvName = (env: unknown): string => {
   if (typeof env !== "string" || env.trim() === "") {
     throw new CoolerEnvError(
-      "Please provide a valid environment name (e.g. development, production)."
+      "Please provide a valid environment name (e.g. development, production).",
     );
   }
 
   if (env === "." || env === ".." || /[/\\\0]/.test(env)) {
     throw new CoolerEnvError(
-      `Invalid environment name "${env}". It cannot contain path separators or be "." or "..".`
+      `Invalid environment name "${env}". It cannot contain path separators or be "." or "..".`,
     );
   }
 
   if (env.length > MAX_ENV_NAME_LENGTH) {
     throw new CoolerEnvError(
-      `Invalid environment name: it must be at most ${MAX_ENV_NAME_LENGTH} characters.`
+      `Invalid environment name: it must be at most ${MAX_ENV_NAME_LENGTH} characters.`,
     );
   }
 
@@ -43,7 +43,10 @@ export const validateEnvName = (env: unknown): string => {
  * one is used as-is.
  */
 export const resolvePaths = (env: string, configPath?: string): Paths => {
-  const configDir = path.resolve(process.cwd(), configPath || DEFAULT_CONFIG_DIR);
+  const configDir = path.resolve(
+    process.cwd(),
+    configPath || DEFAULT_CONFIG_DIR,
+  );
 
   return {
     configDir,
@@ -61,7 +64,7 @@ export const requireEnv = (argv: Argv): string => {
   // minimist yields "" for a bare `-e` and `false` for `--no-e`.
   if (typeof argv.e !== "string" || argv.e.trim() === "") {
     throw new CoolerEnvError(
-      "Please provide a valid environment with the -e option"
+      "Please provide a valid environment with the -e option",
     );
   }
 

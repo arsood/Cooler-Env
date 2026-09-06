@@ -6,7 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Build: `yarn build` (runs `tsc`, emitting to `dist/`). The package is published from `dist/`, so build before testing CLI/module behavior against compiled output.
 - Test: `yarn test` (Jest)
-- Lint: `yarn lint` (ESLint flat config in `eslint.config.mjs`; `eslint-config-prettier` disables formatting rules, but Prettier itself is not yet enforced).
+- Lint: `yarn lint` (ESLint flat config in `eslint.config.mjs`; `eslint-config-prettier` disables formatting rules so ESLint and Prettier do not fight).
+- Format: `yarn format` (Prettier, default config) and `yarn format:check`; CI fails on unformatted files, so run `yarn format` before committing.
 - Run a single test: `yarn test test/init.test.ts` or `yarn test -t "Should create a key file"`
 - Package manager is Yarn 4 (Berry, `node-modules` linker). Use `yarn`, not `npm`, for installs.
 - Node: `.nvmrc` pins `lts/*`.

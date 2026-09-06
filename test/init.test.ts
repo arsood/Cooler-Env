@@ -59,7 +59,7 @@ describe("init", () => {
     await init({ _: [], e: "test", p: "secrets" });
 
     expect(fs.existsSync(path.join(sandbox.dir, "secrets", "test.key"))).toBe(
-      true
+      true,
     );
   });
 
@@ -71,7 +71,7 @@ describe("init", () => {
 
     const gitignore = fs.readFileSync(
       path.join(sandbox.dir, ".gitignore"),
-      "utf8"
+      "utf8",
     );
     const occurrences = gitignore
       .split(/\r?\n/)
@@ -84,7 +84,7 @@ describe("init", () => {
     await init({ _: [], e: "test" });
     const originalKey = fs.readFileSync(
       path.join(sandbox.dir, "config", "test.key"),
-      "utf8"
+      "utf8",
     );
 
     prompt.mockResolvedValueOnce({ confirmOverwrite: false });
@@ -92,7 +92,7 @@ describe("init", () => {
 
     const keyAfter = fs.readFileSync(
       path.join(sandbox.dir, "config", "test.key"),
-      "utf8"
+      "utf8",
     );
     expect(keyAfter).toBe(originalKey);
   });
@@ -103,7 +103,7 @@ describe("init", () => {
 
   it("rejects an environment name that escapes the config directory", async () => {
     await expect(init({ _: [], e: "../escape" })).rejects.toThrow(
-      /Invalid environment name/
+      /Invalid environment name/,
     );
     expect(fs.existsSync(path.join(sandbox.dir, "escape.key"))).toBe(false);
   });
@@ -146,7 +146,7 @@ describe("init", () => {
       await init({ _: [], e: "dev", p: dir });
 
       expect(gitIgnores(sandbox.dir, `${dir}/dev.key`)).toBe(true);
-    }
+    },
   );
 
   it("escapes metacharacters in the environment name too", async () => {
@@ -164,7 +164,7 @@ describe("init", () => {
       expect(fs.existsSync(path.join(outside, "dev.key"))).toBe(true);
       expect(fs.existsSync(path.join(sandbox.dir, ".gitignore"))).toBe(false);
       expect(error.mock.calls.flat().join("\n")).toMatch(
-        /NOT added to .gitignore/
+        /NOT added to .gitignore/,
       );
     } finally {
       fs.rmSync(outside, { recursive: true, force: true });
@@ -177,10 +177,10 @@ describe("init", () => {
     await init({ _: [], e: "dev" });
 
     expect(fs.existsSync(path.join(sandbox.dir, "config", "dev.yml.enc"))).toBe(
-      true
+      true,
     );
     expect(error.mock.calls.flat().join("\n")).toMatch(
-      /could not update .gitignore/
+      /could not update .gitignore/,
     );
   });
 
@@ -188,9 +188,9 @@ describe("init", () => {
     fs.writeFileSync(path.join(sandbox.dir, ".gitignore"), "config/test.key\n");
     await init({ _: [], e: "test" });
 
-    expect(readGitignore(sandbox.dir).filter((l) => l.endsWith("test.key"))).toEqual(
-      ["config/test.key"]
-    );
+    expect(
+      readGitignore(sandbox.dir).filter((l) => l.endsWith("test.key")),
+    ).toEqual(["config/test.key"]);
   });
 
   it("appends cleanly to a .gitignore without a trailing newline", async () => {

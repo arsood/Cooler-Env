@@ -16,7 +16,7 @@ export const makeSandbox = (): Sandbox => {
   // realpath so `dir` matches process.cwd() on macOS, where the temp dir is
   // a symlink (/var -> /private/var).
   const dir = fs.realpathSync(
-    fs.mkdtempSync(path.join(os.tmpdir(), "coolerenv-"))
+    fs.mkdtempSync(path.join(os.tmpdir(), "coolerenv-")),
   );
   const previousCwd = process.cwd();
   process.chdir(dir);

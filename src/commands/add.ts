@@ -3,7 +3,11 @@ import inquirer from "inquirer";
 
 import { Argv } from "../lib/types";
 import { resolvePaths, requireEnv, configPathOf } from "../lib/paths";
-import { assertInitialized, validateKeyName, validateValue } from "../lib/guards";
+import {
+  assertInitialized,
+  validateKeyName,
+  validateValue,
+} from "../lib/guards";
 import { readSecrets, writeSecrets } from "../lib/secrets";
 import { CoolerEnvError } from "../lib/errors";
 
@@ -33,7 +37,7 @@ const add = async (argv: Argv): Promise<void> => {
 
   if (secrets[keyName] !== undefined) {
     throw new CoolerEnvError(
-      `The key "${keyName}" already exists. Try editing it instead.`
+      `The key "${keyName}" already exists. Try editing it instead.`,
     );
   }
 
