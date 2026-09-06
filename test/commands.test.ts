@@ -4,6 +4,8 @@ jest.mock("inquirer", () => ({
 }));
 
 import fs from "fs";
+import { execFileSync } from "child_process";
+import { parseEnv } from "util";
 
 import inquirer from "inquirer";
 import init from "../src/commands/init";
@@ -11,6 +13,7 @@ import add from "../src/commands/add";
 import edit from "../src/commands/edit";
 import deleteCmd from "../src/commands/delete";
 import list from "../src/commands/list";
+import exportCmd from "../src/commands/export";
 import { loadEnv } from "../src/loadEnv";
 import { writeSecrets } from "../src/lib/secrets";
 import { resolvePaths } from "../src/lib/paths";
@@ -296,6 +299,121 @@ describe("list", () => {
 
   it("errors for an uninitialized environment", async () => {
     await expect(list({ _: [], e: "nope" })).rejects.toThrow(
+      /Encryption key not found/,
+    );
+  });
+});
+
+describe("export", () => {
+  let sandbox: Sandbox;
+  let log: jest.SpyInstance;
+  let error: jest.SpyInstance;
+
+  // A spread of values that stress every quoting tier at once.
+  const SECRETS = {
+    BARE: "sk_live_ABC-123",
+    URL: "postgres://user:pass@host:5432/db",
+    SPACE: "has space",
+    HASH: "a#b=c",
+    INTERP: "$HOME and `whoami`",
+    QUOTE: 'it\'s a "trap"',
+    NEWLINE: "line1\nline2",
+    BACKSLASH: "a\\b\\c",
+    EMPTY: "",
+    UNICODE: "café — π",
+    PEM: "-----BEGIN KEY-----\nabc+def/ghi=\n-----END KEY-----",
+  };
+
+  const stdout = (): string =>
+    log.mock.calls.map((c) => String(c[0])).join("\n");
+
+  beforeEach(async () => {
+    sandbox = makeSandbox();
+    prompt.mockReset();
+    log = jest.spyOn(console, "log").mockImplementation(() => {});
+    error = jest.spyOn(console, "error").mockImplementation(() => {});
+    await init(ENV);
+  });
+
+  afterEach(() => {
+    log.mockRestore();
+    error.mockRestore();
+    sandbox.restore();
+  });
+
+  it("round-trips every value through the dotenv parser", async () => {
+    await writeSecrets(resolvePaths("test"), SECRETS);
+
+    log.mockClear();
+    await exportCmd(ENV);
+
+    const parsed = parseEnv(stdout()) as Record<string, string>;
+    for (const [key, value] of Object.entries(SECRETS)) {
+      // The lossy double-quoted tier (values with a single quote) can't decode
+      // back through dotenv, so skip QUOTE in the exact round-trip check.
+      if (key === "QUOTE") continue;
+      expect(parsed[key]).toBe(value);
+    }
+    // A warning names the lossy key.
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("QUOTE"));
+  });
+
+  it("round-trips every value exactly through a real shell with --shell", async () => {
+    await writeSecrets(resolvePaths("test"), SECRETS);
+
+    log.mockClear();
+    await exportCmd({ ...ENV, shell: true });
+    const script = stdout();
+
+    // Source the emitted script in /bin/sh, then print each value back with a
+    // NUL separator so newlines in values don't corrupt the readback.
+    const keys = Object.keys(SECRETS);
+    const readback = keys.map((k) => `printf '%s\\0' "$${k}"`).join("\n");
+    const out = execFileSync("sh", ["-c", `${script}\n${readback}`]);
+    const values = out.toString("utf8").split("\0").slice(0, keys.length);
+
+    keys.forEach((key, i) => {
+      expect(values[i]).toBe(SECRETS[key as keyof typeof SECRETS]);
+    });
+  });
+
+  it("prints keys sorted, one KEY=value per line", async () => {
+    await writeSecrets(resolvePaths("test"), { B: "2", A: "1" });
+
+    log.mockClear();
+    await exportCmd(ENV);
+
+    expect(stdout()).toBe("A=1\nB=2");
+  });
+
+  it("emits `export KEY=…` lines with --shell", async () => {
+    await writeSecrets(resolvePaths("test"), { A: "1", B: "has space" });
+
+    log.mockClear();
+    await exportCmd({ ...ENV, shell: true });
+
+    expect(stdout()).toBe("export A=1\nexport B='has space'");
+  });
+
+  it("reports an empty env on stderr, leaving stdout clean", async () => {
+    log.mockClear();
+    await exportCmd(ENV);
+
+    expect(log).not.toHaveBeenCalled();
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("No keys set."));
+  });
+
+  it("aborts before any output when a key is invalid for --shell", async () => {
+    // `FOO-BAR` is a legal dotenv key but not a shell identifier.
+    await writeSecrets(resolvePaths("test"), { "FOO-BAR": "x", OK: "y" });
+
+    log.mockClear();
+    await expect(exportCmd({ ...ENV, shell: true })).rejects.toThrow(/FOO-BAR/);
+    expect(log).not.toHaveBeenCalled(); // fail-fast: nothing written
+  });
+
+  it("errors for an uninitialized environment", async () => {
+    await expect(exportCmd({ _: [], e: "nope" })).rejects.toThrow(
       /Encryption key not found/,
     );
   });

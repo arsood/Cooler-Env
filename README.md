@@ -119,12 +119,31 @@ cooler-env delete -e development
 
 ### `list`
 
-Prints the key names for an environment, one per line, sorted (byte order). Pass `--values` to also print the values as `KEY=value` — a value that contains spaces, quotes, `=`, or a newline is quoted (`KEY="..."`) so every key stays on its own line. This writes secrets to stdout, so use it deliberately.
+Prints the key names for an environment, one per line, sorted (byte order). Pass `--values` to also print the values as `KEY=value` — a value that contains spaces, quotes, `=`, or a newline is quoted (`KEY="..."`) so every key stays on its own line. This is a **display** format for reading, not for machine consumption; to generate a file to load, use `export`. This writes secrets to stdout, so use it deliberately.
 
 ```bash
 cooler-env list -e development
 cooler-env list -e development --values
 ```
+
+### `export`
+
+Writes all of an environment's secrets to stdout as a `.env` file (default) or, with `--shell`, as `export KEY=value` lines you can source. Redirecting or `eval`-ing the output is how you get the secrets into a process without committing a plaintext file. This writes secrets to stdout, so use it deliberately — and create any file with a tight umask.
+
+```bash
+# Write a .env file (create it read/write for you only):
+(umask 077; cooler-env export -e development > .env)
+
+# Load straight into the current shell, no file on disk:
+eval "$(cooler-env export -e development --shell)"
+```
+
+The two dialects encode awkward values differently:
+
+- **Default (dotenv).** Values are bare when safe, otherwise single-quoted (which round-trips anything, including `$`, backticks, and backslashes). A value that contains a single quote falls back to a double-quoted, backslash-escaped form and prints a warning on stderr — some `.env` loaders won't decode those escapes, so use `--shell` when you need an exact copy.
+- **`--shell`.** POSIX single-quoting that round-trips **every** value exactly in `sh`/`bash`/`zsh`. Keys must be valid shell identifiers; if any key isn't, the command aborts before writing a single line, so a failed `eval` is a clean no-op.
+
+An empty environment writes nothing to stdout (with a note on stderr), so `export > .env` yields an empty file rather than an error.
 
 ### `--help` / `--version`
 

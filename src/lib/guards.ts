@@ -22,7 +22,7 @@ export const assertInitialized = (paths: Paths, env: string): void => {
 // A valid environment-variable name: a letter or underscore, then letters,
 // digits, or underscores. Keeps stored keys usable as real env vars once
 // injected into `process.env`.
-const KEY_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+export const KEY_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 /** inquirer validator: non-empty, trimmed, and safe to store as a key name. */
 export const validateKeyName = (value: string): true | string => {

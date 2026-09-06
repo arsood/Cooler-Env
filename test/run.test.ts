@@ -144,4 +144,18 @@ describe("run (CLI dispatch)", () => {
   it("treats list as a valid command", async () => {
     await expect(run(["list", "-e"])).rejects.toThrow(/-e option/);
   });
+
+  it("treats export as a valid command", async () => {
+    await expect(run(["export", "-e"])).rejects.toThrow(/-e option/);
+  });
+
+  it("accepts --shell on export without warning about an unknown option", async () => {
+    await run(["init", "-e", "t"]);
+    error.mockClear();
+    await run(["export", "-e", "t", "--shell"]);
+
+    expect(error).not.toHaveBeenCalledWith(
+      expect.stringContaining("unknown option"),
+    );
+  });
 });

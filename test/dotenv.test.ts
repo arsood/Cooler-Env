@@ -1,13 +1,20 @@
-import { formatEnvValue } from "../src/lib/dotenv";
+import {
+  formatDisplayValue,
+  formatDotenvValue,
+  formatShellValue,
+} from "../src/lib/dotenv";
 
-describe("formatEnvValue", () => {
+// One PEM-ish multiline blob reused across tiers.
+const PEM = "-----BEGIN KEY-----\nabc+def/ghi=\n-----END KEY-----";
+
+describe("formatDisplayValue (list --values)", () => {
   it.each([
     "abc123",
     "sk_live_ABC-123",
     "postgres://user:pass@host:5432/db",
     "a.b/c:d@e%f+g",
   ])("prints a safe value %j bare", (value) => {
-    expect(formatEnvValue(value)).toBe(value);
+    expect(formatDisplayValue(value)).toBe(value);
   });
 
   it.each([
@@ -19,11 +26,69 @@ describe("formatEnvValue", () => {
     ['quote"inside', '"quote\\"inside"'],
     ["line1\nline2", '"line1\\nline2"'],
   ])("JSON-quotes an unsafe value %j", (value, expected) => {
-    expect(formatEnvValue(value)).toBe(expected);
+    expect(formatDisplayValue(value)).toBe(expected);
   });
 
   it("round-trips a quoted value through JSON.parse", () => {
     const value = 'tricky\n"=" value';
-    expect(JSON.parse(formatEnvValue(value))).toBe(value);
+    expect(JSON.parse(formatDisplayValue(value))).toBe(value);
+  });
+});
+
+describe("formatDotenvValue", () => {
+  it.each([
+    ["abc123", "abc123"],
+    ["a.b/c:d@e%f+g", "a.b/c:d@e%f+g"],
+  ])("bare for a safe value %j", (value, text) => {
+    expect(formatDotenvValue(value)).toEqual({ text, lossy: false });
+  });
+
+  it.each([
+    ["", "''"],
+    ["has space", "'has space'"],
+    ["a=b", "'a=b'"],
+    ["with#hash", "'with#hash'"],
+    ["$INTERP", "'$INTERP'"],
+    ["back`tick", "'back`tick'"],
+    ["a\\b", "'a\\b'"],
+    ['a"b', "'a\"b'"],
+    ["line1\nline2", "'line1\nline2'"],
+    [PEM, `'${PEM}'`],
+  ])("single-quotes an unsafe value %j losslessly", (value, text) => {
+    expect(formatDotenvValue(value)).toEqual({ text, lossy: false });
+  });
+
+  it.each([
+    ["it's", `"it's"`, true],
+    ["a'b\\c", `"a'b\\\\c"`, true],
+    ["a'b\"c", `"a'b\\"c"`, true],
+  ])(
+    "double-quotes (lossy) a value %j that contains a single quote",
+    (value, text, lossy) => {
+      expect(formatDotenvValue(value)).toEqual({ text, lossy });
+    },
+  );
+});
+
+describe("formatShellValue", () => {
+  it.each([
+    ["abc123", "abc123"],
+    ["a.b/c:d@e%f+g", "a.b/c:d@e%f+g"],
+  ])("bare for a safe value %j", (value, expected) => {
+    expect(formatShellValue(value)).toBe(expected);
+  });
+
+  it.each([
+    ["has space", "'has space'"],
+    ["$INTERP", "'$INTERP'"],
+    ["back`tick", "'back`tick'"],
+    ["a\\b", "'a\\b'"],
+    ['a"b', "'a\"b'"],
+    ["line1\nline2", "'line1\nline2'"],
+    ["it's", "'it'\\''s'"],
+    ["a'b'c", "'a'\\''b'\\''c'"],
+    [PEM, `'${PEM}'`],
+  ])("single-quotes an unsafe value %j", (value, expected) => {
+    expect(formatShellValue(value)).toBe(expected);
   });
 });

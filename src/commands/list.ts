@@ -4,7 +4,7 @@ import { Argv } from "../lib/types";
 import { resolvePaths, requireEnv, configPathOf } from "../lib/paths";
 import { assertInitialized } from "../lib/guards";
 import { readSecrets } from "../lib/secrets";
-import { formatEnvValue } from "../lib/dotenv";
+import { formatDisplayValue } from "../lib/dotenv";
 
 const list = async (argv: Argv): Promise<void> => {
   const env = requireEnv(argv);
@@ -26,7 +26,9 @@ const list = async (argv: Argv): Promise<void> => {
   const withValues = argv.values === true;
 
   for (const key of keys) {
-    console.log(withValues ? `${key}=${formatEnvValue(secrets[key])}` : key);
+    console.log(
+      withValues ? `${key}=${formatDisplayValue(secrets[key])}` : key,
+    );
   }
 };
 

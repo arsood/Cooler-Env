@@ -76,6 +76,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `list` command: prints an environment's key names (sorted, one per line);
   `--values` also prints the values as `KEY=value`, quoting any value that
   contains spaces, quotes, `=`, or a newline so each key stays on one line.
+- `export` command: writes all of an environment's secrets to stdout as a
+  `.env` file, or as sourceable `export KEY=value` lines with `--shell`. The
+  dotenv dialect single-quotes awkward values (round-tripping `$`, backticks,
+  and backslashes) and warns when a value contains a single quote, since that
+  tier's escapes don't decode in every loader; `--shell` uses POSIX quoting
+  that round-trips every value exactly and aborts before writing if any key is
+  not a valid shell identifier. Unlike `list --values` (a display format),
+  `export` is meant to be redirected to a file or `eval`-ed.
 - `--help` / `-h` (usage, commands, and options) and `--version`.
 - Unrecognized options and unexpected arguments are now ignored with a warning
   on stderr instead of being silently accepted, and a malformed option no longer
