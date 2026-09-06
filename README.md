@@ -95,7 +95,7 @@ cooler-env add -e development --show   # reveal the value while typing
 
 ### `edit`
 
-Opens an interactive prompt to pick an existing key and set a new value. The new value is **hidden** by default (no echo, no length shown), and the current value is not pre-filled. Pass `--show` to type in the clear and edit the current value in place.
+Opens an interactive prompt to pick an existing key and set a new value. The new value is **hidden** by default (no echo, no length shown), and the current value is not pre-filled — leave the prompt **blank to keep the current value** unchanged, so a stray Enter can't erase a secret. Pass `--show` to type in the clear, with the current value pre-filled as an editable default.
 
 ```bash
 cooler-env edit -e development

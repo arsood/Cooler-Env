@@ -251,7 +251,9 @@ export const writeSecrets = async (
   );
 
   try {
-    await fs.promises.writeFile(staging, blob, { mode: 0o600 });
+    // `wx` fails rather than following/overwriting a pre-existing path, so the
+    // "uniquely named temp" invariant is enforced, not just assumed.
+    await fs.promises.writeFile(staging, blob, { mode: 0o600, flag: "wx" });
     await fs.promises.rename(staging, paths.encryptedFile);
   } finally {
     await fs.promises.rm(staging, { force: true });

@@ -9,6 +9,7 @@ const BANNER = [
   " | |      / _ \\   / _ \\  | |  / _ \\ | '__|   |  _|   | '_ \\  \\ \\ / /",
   " | |___  | (_) | | (_) | | | |  __/ | |      | |___  | | | |  \\ V /",
   "  \\____|  \\___/   \\___/  |_|  \\___| |_|      |_____| |_| |_|   \\_/",
+  "", // trailing blank line, matching the original figlet output's spacing
 ].join("\n");
 
 /** Print the Cooler Env ASCII banner. */

@@ -22,8 +22,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- `add` and `edit` now accept an **empty-string value**, which is a legitimate
-  value for some variables. (Previously the prompt rejected `""`.)
+- `add` now accepts an **empty-string value** (a legitimate value for some
+  variables; previously the prompt rejected `""`). On `edit`, a **blank entry
+  keeps the current value** — in both masked and `--show` modes — so a stray
+  Enter can never silently erase a secret.
 - Aborting a prompt with Ctrl+C now exits with code **130** (the SIGINT
   convention) instead of 1, so scripts can tell an interrupt from an error.
 

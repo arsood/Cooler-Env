@@ -37,12 +37,24 @@ const edit = async (argv: Argv): Promise<void> => {
     {
       name: "keyEditedValue",
       type: show ? "input" : "password",
-      message: "What is the new value of this key?",
+      message:
+        "What is the new value of this key? (leave blank to keep the current value)",
       default: show ? secrets[keyToEdit] : undefined,
     },
   ]);
 
-  secrets[keyToEdit] = keyEditedValue;
+  // A blank entry means "keep the current value", so a stray Enter can never
+  // silently erase a secret — the same meaning in both modes. (With `--show`,
+  // inquirer's input already returns the current value as its default on a
+  // blank line; masked, an empty string maps to the same thing here.)
+  const nextValue = keyEditedValue === "" ? secrets[keyToEdit] : keyEditedValue;
+
+  if (nextValue === secrets[keyToEdit]) {
+    console.log(chalk.yellow("No change."));
+    return;
+  }
+
+  secrets[keyToEdit] = nextValue;
   await writeSecrets(paths, secrets, secretKey);
 
   console.log(chalk.green("Done! 🌟"));
