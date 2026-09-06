@@ -45,6 +45,20 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `CoolerEnvError` is exported from the package entry point so callers can
   `instanceof` it, as the README already documented.
 
+### Internal
+
+- Prettier is now enforced: explicit config, `yarn format` / `yarn format:check`
+  scripts, a CI check, and a one-time mechanical reformat.
+- TypeScript now targets ES2022 (native on every supported Node), so the build
+  no longer downlevels `async`/`await` or classes.
+- CI lints and checks formatting once on Node 22 and builds/tests on Node 18,
+  20, 22, and 24.
+- Dev dependencies: ESLint 10, `@eslint/js` 10, `typescript-eslint` 8.69. The
+  `yarn npm audit` deprecation warning for ESLint 9 is gone. Runtime
+  dependencies are unchanged; `inquirer` stays on 11 because 12+ requires
+  Node 20.17, which would drop Node 18 support.
+- `prepublishOnly` now runs lint, format check, and tests before building.
+
 ## [3.0.0] - 2026-08-10
 
 The v3 line is a security and API overhaul. **It is a hard break from v2:**

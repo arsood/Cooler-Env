@@ -20,13 +20,13 @@ const warn = (message: string): void => console.error(chalk.yellow(message));
  */
 export const gitignoreEntryFor = (
   configDir: string,
-  keyName: string
+  keyName: string,
 ): string | undefined => {
   // Compare real paths so a symlinked cwd or config dir isn't misread as
   // "outside" the project.
   const relativeDir = path.relative(
     fs.realpathSync(process.cwd()),
-    fs.realpathSync(configDir)
+    fs.realpathSync(configDir),
   );
   const relative = path.join(relativeDir, keyName);
   const keyFile = path.join(configDir, keyName);
@@ -37,7 +37,7 @@ export const gitignoreEntryFor = (
     relative.startsWith(`..${path.sep}`)
   ) {
     warn(
-      `Warning: ${keyFile} is outside the current directory, so it was NOT added to .gitignore. Make sure it is never committed.`
+      `Warning: ${keyFile} is outside the current directory, so it was NOT added to .gitignore. Make sure it is never committed.`,
     );
     return undefined;
   }
@@ -46,7 +46,7 @@ export const gitignoreEntryFor = (
 
   if (segments.some((segment) => segment.includes("\\"))) {
     warn(
-      `Warning: ${keyFile} contains a backslash, which cannot be expressed in .gitignore, so it was NOT added. Make sure it is never committed.`
+      `Warning: ${keyFile} contains a backslash, which cannot be expressed in .gitignore, so it was NOT added. Make sure it is never committed.`,
     );
     return undefined;
   }
@@ -55,7 +55,7 @@ export const gitignoreEntryFor = (
     "/" +
     segments
       .map((segment) =>
-        segment.replace(/[#![\]*?]/g, (m) => `\\${m}`).replace(/ $/, "\\ ")
+        segment.replace(/[#![\]*?]/g, (m) => `\\${m}`).replace(/ $/, "\\ "),
       )
       .join("/")
   );
@@ -78,10 +78,14 @@ const ensureGitignored = (entry: string): void => {
 
   // Separate from existing content with a blank line; no leading blank line
   // when creating the file.
-  const separator = !existing.length ? "" : existing.endsWith("\n") ? "\n" : "\n\n";
+  const separator = !existing.length
+    ? ""
+    : existing.endsWith("\n")
+      ? "\n"
+      : "\n\n";
   fs.appendFileSync(
     gitignorePath,
-    `${separator}# Cooler-Env secret key\n${entry}\n`
+    `${separator}# Cooler-Env secret key\n${entry}\n`,
   );
 
   console.log(chalk.green(`Added ${entry} to .gitignore`));
@@ -103,7 +107,7 @@ const init = async (argv: Argv): Promise<void> => {
         type: "confirm",
         default: false,
         message: chalk.red(
-          `Environment "${env}" already exists. Re-initializing generates a NEW key and ERASES all existing secrets. Continue?`
+          `Environment "${env}" already exists. Re-initializing generates a NEW key and ERASES all existing secrets. Continue?`,
         ),
       },
     ]);
@@ -120,7 +124,10 @@ const init = async (argv: Argv): Promise<void> => {
 
   // Resolve the .gitignore pattern before writing anything so a bad layout is
   // reported up front rather than after the key exists.
-  const entry = gitignoreEntryFor(paths.configDir, path.basename(paths.keyFile));
+  const entry = gitignoreEntryFor(
+    paths.configDir,
+    path.basename(paths.keyFile),
+  );
 
   const newKey = crypto.randomBytes(32).toString("hex");
   fs.writeFileSync(paths.keyFile, newKey, { mode: 0o600 });
@@ -131,7 +138,7 @@ const init = async (argv: Argv): Promise<void> => {
       ensureGitignored(entry);
     } catch (err) {
       warn(
-        `Warning: could not update .gitignore (${(err as Error).message}). Add ${entry} to it manually and make sure the key is never committed.`
+        `Warning: could not update .gitignore (${(err as Error).message}). Add ${entry} to it manually and make sure the key is never committed.`,
       );
     }
   }

@@ -7,13 +7,13 @@ import { CoolerEnvError } from "./errors";
 export const assertInitialized = (paths: Paths, env: string): void => {
   if (!fs.existsSync(paths.keyFile)) {
     throw new CoolerEnvError(
-      `Encryption key not found for environment "${env}". Run \`cooler-env init -e ${env}\` first.`
+      `Encryption key not found for environment "${env}". Run \`cooler-env init -e ${env}\` first.`,
     );
   }
 
   if (!fs.existsSync(paths.encryptedFile)) {
     throw new CoolerEnvError(
-      `Encrypted file not found for environment "${env}". Run \`cooler-env init -e ${env}\` first.`
+      `Encrypted file not found for environment "${env}". Run \`cooler-env init -e ${env}\` first.`,
     );
   }
 };

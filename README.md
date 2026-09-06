@@ -26,10 +26,10 @@ Instead of scattering plaintext `.env` files across machines and chat threads, C
 
 Every environment (`development`, `production`, …) is backed by a trio of files inside a config directory (default `config/`):
 
-| File               | Committed?      | Purpose                                                              |
-| ------------------ | --------------- | ------------------------------------------------------------------- |
-| `<env>.key`        | ❌ **Never**    | Hex secret key (`crypto.randomBytes(32)`). Auto-added to `.gitignore` on `init`. |
-| `<env>.yml.enc`    | ✅ Yes           | The encrypted secrets blob. Safe to commit.                         |
+| File            | Committed?   | Purpose                                                                          |
+| --------------- | ------------ | -------------------------------------------------------------------------------- |
+| `<env>.key`     | ❌ **Never** | Hex secret key (`crypto.randomBytes(32)`). Auto-added to `.gitignore` on `init`. |
+| `<env>.yml.enc` | ✅ Yes       | The encrypted secrets blob. Safe to commit.                                      |
 
 Encryption uses Node's built-in, authenticated **`aes-256-gcm`**. The on-disk blob is a single binary payload — `[salt(16)][iv(12)][authTag(16)][ciphertext]` — with a fresh random salt and IV per write and the AES key derived from your secret key via `scrypt`. Any tampering or a wrong key **fails loudly** rather than returning garbage. See [Security model](#security-model) for details.
 
@@ -67,10 +67,10 @@ console.log(env.API_KEY); // "sk_live_123..."
 
 All commands share the same two options:
 
-| Option          | Required | Description                                                                    |
-| --------------- | -------- | ------------------------------------------------------------------------------ |
-| `-e <env>`      | ✅       | Environment name (e.g. `development`, `production`). Becomes a file name, so it cannot contain `/` or `\`. |
-| `-p <path>`     | ❌       | Directory for the key/encrypted files, relative to the current directory or absolute. Defaults to `config`. |
+| Option      | Required | Description                                                                                                 |
+| ----------- | -------- | ----------------------------------------------------------------------------------------------------------- |
+| `-e <env>`  | ✅       | Environment name (e.g. `development`, `production`). Becomes a file name, so it cannot contain `/` or `\`.  |
+| `-p <path>` | ❌       | Directory for the key/encrypted files, relative to the current directory or absolute. Defaults to `config`. |
 
 ### `init`
 
@@ -130,11 +130,11 @@ await loadEnv(process.env.NODE_ENV, { inject: true });
 
 #### Options
 
-| Option       | Type      | Default    | Description                                                                                             |
-| ------------ | --------- | ---------- | ------------------------------------------------------------------------------------------------------ |
-| `configPath` | `string`  | `"config"` | Directory holding the encryption key and encrypted files.                                              |
-| `inject`     | `boolean` | `false`    | Also write each secret into `process.env`.                                                              |
-| `override`   | `boolean` | `false`    | When injecting, overwrite variables already set in the environment. By default a shell/CI value wins.  |
+| Option       | Type      | Default    | Description                                                                                           |
+| ------------ | --------- | ---------- | ----------------------------------------------------------------------------------------------------- |
+| `configPath` | `string`  | `"config"` | Directory holding the encryption key and encrypted files.                                             |
+| `inject`     | `boolean` | `false`    | Also write each secret into `process.env`.                                                            |
+| `override`   | `boolean` | `false`    | When injecting, overwrite variables already set in the environment. By default a shell/CI value wins. |
 
 #### TypeScript
 
@@ -143,7 +143,9 @@ Types ship with the package:
 ```typescript
 import { loadEnv, type Secrets, type LoadEnvOptions } from "cooler-env";
 
-const env: Secrets = await loadEnv("production", { inject: true } satisfies LoadEnvOptions);
+const env: Secrets = await loadEnv("production", {
+  inject: true,
+} satisfies LoadEnvOptions);
 ```
 
 #### Error handling

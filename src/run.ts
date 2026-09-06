@@ -37,7 +37,7 @@ export const run = async (args: string[]): Promise<void> => {
 
   if (!command) {
     throw new CoolerEnvError(
-      `Please enter a valid command: ${COMMAND_NAMES.join(", ")}.`
+      `Please enter a valid command: ${COMMAND_NAMES.join(", ")}.`,
     );
   }
 
