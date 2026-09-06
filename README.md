@@ -140,8 +140,8 @@ eval "$(cooler-env export -e development --shell)"
 
 The two dialects encode awkward values differently:
 
-- **Default (dotenv).** Values are bare when safe, otherwise single-quoted (which round-trips anything, including `$`, backticks, and backslashes). A value that contains a single quote falls back to a double-quoted, backslash-escaped form and prints a warning on stderr — some `.env` loaders won't decode those escapes, so use `--shell` when you need an exact copy.
-- **`--shell`.** POSIX single-quoting that round-trips **every** value exactly in `sh`/`bash`/`zsh`. Keys must be valid shell identifiers; if any key isn't, the command aborts before writing a single line, so a failed `eval` is a clean no-op.
+- **Default (dotenv).** Targets the npm [`dotenv`](https://www.npmjs.com/package/dotenv) parser and Node's `util.parseEnv`. Values are bare when safe, otherwise single-quoted — which those two parsers treat literally, round-tripping `$`, backticks, and backslashes. A value that contains a single quote, or a carriage return, prints a warning on stderr: its encoding may not survive every parser, and other ecosystems' loaders (python-dotenv, Ruby dotenv, Docker Compose) apply different quoting and interpolation rules. Use `--shell` when you need a byte-exact, loader-independent copy.
+- **`--shell`.** POSIX single-quoting that round-trips **every** value exactly in `sh`/`bash`/`zsh`. Keys must be valid shell identifiers; if any key isn't, the command aborts before writing a single line, so a failed `eval` is a clean no-op. Sourcing assigns real shell variables, so a key that shadows a special or read-only name (`PATH`, `IFS`, `UID`, …) takes effect as an assignment to it — export only environments whose keys you control.
 
 An empty environment writes nothing to stdout (with a note on stderr), so `export > .env` yields an empty file rather than an error.
 

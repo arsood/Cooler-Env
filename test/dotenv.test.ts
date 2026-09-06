@@ -62,12 +62,25 @@ describe("formatDotenvValue", () => {
     ["it's", `"it's"`, true],
     ["a'b\\c", `"a'b\\\\c"`, true],
     ["a'b\"c", `"a'b\\"c"`, true],
+    // `$` and backtick are backslash-escaped in this tier so an interpolating
+    // loader can't expand or execute them.
+    ["it's $(x)", '"it\'s \\$(x)"', true],
+    ["a'b`c", '"a\'b\\`c"', true],
   ])(
     "double-quotes (lossy) a value %j that contains a single quote",
     (value, text, lossy) => {
       expect(formatDotenvValue(value)).toEqual({ text, lossy });
     },
   );
+
+  it("flags a carriage return lossy even in the single-quoted tier", () => {
+    // Single-quoted (no `'` in the value) but still lossy: dotenv/parseEnv
+    // mangle a CR even inside quotes.
+    expect(formatDotenvValue("a\r\nb")).toEqual({
+      text: "'a\r\nb'",
+      lossy: true,
+    });
+  });
 });
 
 describe("formatShellValue", () => {

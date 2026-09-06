@@ -47,6 +47,16 @@ const exportCmd = async (argv: Argv): Promise<void> => {
     );
   }
 
+  // A NUL byte can't live in a real process environment (execve truncates
+  // there), and `sh`/`bash` reject a script that contains one outright — so
+  // refuse rather than emit output that a shell would discard wholesale.
+  const withNul = keys.filter((key) => secrets[key].includes("\0"));
+  if (withNul.length) {
+    throw new CoolerEnvError(
+      `Cannot export: the value for ${withNul.join(", ")} contains a NUL byte, which cannot be stored in an environment variable.`,
+    );
+  }
+
   const lines: string[] = [];
   const lossyKeys: string[] = [];
 
@@ -63,7 +73,7 @@ const exportCmd = async (argv: Argv): Promise<void> => {
   for (const key of lossyKeys) {
     console.error(
       chalk.yellow(
-        `Warning: value for "${key}" contains a single quote; its .env encoding uses backslash escapes that some dotenv parsers won't decode. Use --shell for an exact copy.`,
+        `Warning: the value for "${key}" may not round-trip through every .env parser (it contains a quote or a carriage return). Use --shell for an exact, loader-independent copy.`,
       ),
     );
   }

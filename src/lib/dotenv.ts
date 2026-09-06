@@ -23,31 +23,51 @@ export interface DotenvFormat {
   /** The formatted value, ready to place after `KEY=`. */
   text: string;
   /**
-   * True when the lossy double-quoted tier was used. The dotenv npm parser
-   * treats a backslash in a double-quoted value literally (it only expands
-   * `\n`/`\r`/`\t`), so `\"` and `\\` don't decode back to `"` and `\` — the
-   * value won't fully round-trip. The caller should warn, naming the key.
+   * True when the encoding may not survive a round-trip through the target
+   * parsers (npm `dotenv`, Node's `util.parseEnv`). Two cases set it:
+   *   - the double-quoted tier, whose backslash escapes those parsers don't
+   *     decode back (they only expand `\n`/`\r`), and
+   *   - any value containing a carriage return, which `dotenv` normalizes to
+   *     `\n` and `util.parseEnv` strips entirely, even inside quotes.
+   * The caller should warn, naming the key, and point to `--shell`.
    */
   lossy: boolean;
 }
 
 /**
- * Render a secret value for a dotenv (`KEY=value`) line.
+ * Render a secret value for a dotenv (`KEY=value`) line, targeting the npm
+ * `dotenv` parser and Node's `util.parseEnv`. Other ecosystems' loaders
+ * (python-dotenv, Ruby dotenv, Docker Compose) apply different quoting and
+ * interpolation rules; `--shell` is the loader-independent option.
  *
  * Tiers, in order:
  *   1. bare            — when every character is in `BARE_VALUE`.
  *   2. single-quoted   — `'…'` with raw newlines, when the value has no `'`.
- *                        dotenv treats single quotes as fully literal, so this
- *                        round-trips anything (including `$`, backticks, `\`).
- *   3. double-quoted   — `"…"` escaping `\` and `"`, raw newlines. Marked
- *                        `lossy` because dotenv can't decode the escapes back.
+ *                        The target parsers treat single quotes literally, so
+ *                        this round-trips anything else (incl. `$`, backticks,
+ *                        `\`) for them.
+ *   3. double-quoted   — `"…"` escaping `\`, `"`, and also `$`/backtick, raw
+ *                        newlines. Marked `lossy` (the target parsers don't
+ *                        decode the escapes). Escaping `$`/backtick is defense
+ *                        in depth: an interpolating loader (dotenv-expand,
+ *                        Compose, python-/Ruby dotenv) would otherwise expand —
+ *                        or, for Ruby, execute `$(…)` in — a value that lands
+ *                        here precisely because it contains a `'` and so can't
+ *                        use the safe single-quoted tier.
  */
 export const formatDotenvValue = (value: string): DotenvFormat => {
+  // A carriage return is mangled by the target parsers even when quoted, so it
+  // taints whichever quoted tier is used below.
+  const fragile = value.includes("\r");
+
   if (BARE_VALUE.test(value)) return { text: value, lossy: false };
 
-  if (!value.includes("'")) return { text: `'${value}'`, lossy: false };
+  if (!value.includes("'")) return { text: `'${value}'`, lossy: fragile };
 
-  const escaped = value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  const escaped = value
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/([$`])/g, "\\$1");
   return { text: `"${escaped}"`, lossy: true };
 };
 

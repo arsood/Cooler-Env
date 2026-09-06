@@ -309,20 +309,41 @@ describe("export", () => {
   let log: jest.SpyInstance;
   let error: jest.SpyInstance;
 
-  // A spread of values that stress every quoting tier at once.
+  // A spread of values that stress every quoting tier and every injection
+  // vector at once. NEWLINE embeds a fake `KEY=` line; INJECT and INTERP carry
+  // command substitutions and interpolations that must never fire.
   const SECRETS = {
     BARE: "sk_live_ABC-123",
     URL: "postgres://user:pass@host:5432/db",
     SPACE: "has space",
+    WS: "  pad  ",
     HASH: "a#b=c",
+    COMMENT: "# not really a comment",
     INTERP: "$HOME and `whoami`",
     QUOTE: 'it\'s a "trap"',
-    NEWLINE: "line1\nline2",
+    INJECT: "it's $(touch pwned) and `touch pwned2`",
+    LONE: "'",
+    EXPORTLINE: "export EVIL=1",
+    NEWLINE: "line1\nK99=evil\nline3",
+    TAB: "a\tb",
     BACKSLASH: "a\\b\\c",
     EMPTY: "",
     UNICODE: "café — π",
     PEM: "-----BEGIN KEY-----\nabc+def/ghi=\n-----END KEY-----",
   };
+  // Values that contain a single quote and so land in the lossy double-quoted
+  // dotenv tier; they can't decode exactly through the dotenv parser.
+  const LOSSY = ["QUOTE", "INJECT", "LONE"];
+
+  // Shells to round-trip the --shell output through (only those installed).
+  const SHELLS = ["sh", "bash", "zsh"].filter((sh) => {
+    try {
+      execFileSync(sh, ["-c", "true"], { stdio: "ignore" });
+      return true;
+    } catch {
+      return false;
+    }
+  });
 
   const stdout = (): string =>
     log.mock.calls.map((c) => String(c[0])).join("\n");
@@ -341,40 +362,73 @@ describe("export", () => {
     sandbox.restore();
   });
 
-  it("round-trips every value through the dotenv parser", async () => {
+  it("round-trips through the dotenv parser without swallowing or spoofing keys", async () => {
     await writeSecrets(resolvePaths("test"), SECRETS);
 
     log.mockClear();
     await exportCmd(ENV);
 
     const parsed = parseEnv(stdout()) as Record<string, string>;
+
+    // Exactly the input keys come back — no key swallowed, and the `K99=evil`
+    // hidden in NEWLINE (or `EVIL` in EXPORTLINE) did not spoof a new key.
+    expect(Object.keys(parsed).sort()).toEqual(Object.keys(SECRETS).sort());
+
     for (const [key, value] of Object.entries(SECRETS)) {
-      // The lossy double-quoted tier (values with a single quote) can't decode
-      // back through dotenv, so skip QUOTE in the exact round-trip check.
-      if (key === "QUOTE") continue;
+      if (LOSSY.includes(key)) continue; // lossy tier: checked separately below
       expect(parsed[key]).toBe(value);
     }
-    // A warning names the lossy key.
-    expect(error).toHaveBeenCalledWith(expect.stringContaining("QUOTE"));
+
+    // Defense in depth: in the lossy double-quoted tier the `$` and backtick
+    // are backslash-escaped, so an interpolating loader can't expand or run
+    // them. Every lossy key is also named in a stderr warning.
+    const injectLine = stdout()
+      .split("\n")
+      .find((l) => l.startsWith("INJECT="));
+    expect(injectLine).toContain("\\$(");
+    expect(injectLine).toContain("\\`");
+    for (const key of LOSSY) {
+      expect(error).toHaveBeenCalledWith(expect.stringContaining(key));
+    }
   });
 
-  it("round-trips every value exactly through a real shell with --shell", async () => {
-    await writeSecrets(resolvePaths("test"), SECRETS);
+  it.each(SHELLS)(
+    "round-trips every value exactly through %s with --shell (no injection)",
+    async (sh) => {
+      await writeSecrets(resolvePaths("test"), SECRETS);
+
+      log.mockClear();
+      await exportCmd({ ...ENV, shell: true });
+      const script = stdout();
+
+      // Source the emitted script, then print each value back with a NUL
+      // separator so newlines in values don't corrupt the readback.
+      const keys = Object.keys(SECRETS);
+      const readback = keys.map((k) => `printf '%s\\0' "$${k}"`).join("\n");
+      const out = execFileSync(sh, ["-c", `${script}\n${readback}`]);
+      const values = out.toString("utf8").split("\0").slice(0, keys.length);
+
+      keys.forEach((key, i) => {
+        expect(values[i]).toBe(SECRETS[key as keyof typeof SECRETS]);
+      });
+
+      // The command substitutions in INJECT/INTERP stayed inert — no file
+      // was created in the sandbox cwd the shell inherited.
+      expect(fs.existsSync("pwned")).toBe(false);
+      expect(fs.existsSync("pwned2")).toBe(false);
+    },
+  );
+
+  it("warns that a carriage return won't round-trip in the dotenv dialect", async () => {
+    await writeSecrets(resolvePaths("test"), { CR: "a\r\nb" });
 
     log.mockClear();
-    await exportCmd({ ...ENV, shell: true });
-    const script = stdout();
+    await exportCmd(ENV);
 
-    // Source the emitted script in /bin/sh, then print each value back with a
-    // NUL separator so newlines in values don't corrupt the readback.
-    const keys = Object.keys(SECRETS);
-    const readback = keys.map((k) => `printf '%s\\0' "$${k}"`).join("\n");
-    const out = execFileSync("sh", ["-c", `${script}\n${readback}`]);
-    const values = out.toString("utf8").split("\0").slice(0, keys.length);
-
-    keys.forEach((key, i) => {
-      expect(values[i]).toBe(SECRETS[key as keyof typeof SECRETS]);
-    });
+    // The value is single-quoted (not the double-quoted tier) yet still flagged
+    // lossy, because dotenv/parseEnv mangle the CR.
+    expect(stdout()).toBe("CR='a\r\nb'");
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("CR"));
   });
 
   it("prints keys sorted, one KEY=value per line", async () => {
