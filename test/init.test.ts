@@ -10,7 +10,7 @@ jest.mock("inquirer", () => ({
 import { execFileSync } from "child_process";
 
 import inquirer from "inquirer";
-import init, { gitignoreEntryFor } from "../src/commands/init";
+import init from "../src/commands/init";
 import { makeSandbox, Sandbox } from "./sandbox";
 
 const prompt = inquirer.prompt as unknown as jest.Mock;

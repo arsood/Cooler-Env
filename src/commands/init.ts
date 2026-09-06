@@ -55,7 +55,7 @@ export const gitignoreEntryFor = (
     "/" +
     segments
       .map((segment) =>
-        segment.replace(/[#!\[\]*?]/g, (m) => `\\${m}`).replace(/ $/, "\\ ")
+        segment.replace(/[#![\]*?]/g, (m) => `\\${m}`).replace(/ $/, "\\ ")
       )
       .join("/")
   );
