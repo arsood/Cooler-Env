@@ -34,7 +34,7 @@
   "dependencies": {
     "chalk": "^4.1.2",
     "figlet": "^1.7.0",
-    "inquirer": "^14",
+    "inquirer": "^12",
     "minimist": "^1.2.8"
   },
   "devDependencies": {

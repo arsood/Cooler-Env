@@ -9,9 +9,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed (breaking)
 
 - **Minimum supported Node is now 20** (`engines.node: ">=20"`). Node 18 reached
-  end-of-life in April 2025; dropping it lets the package track current
-  `inquirer` and `@types/node`. This is the only reason v4 is a major bump —
-  there are no API or on-disk format changes from v3.
+  end-of-life in April 2025; dropping it keeps the package on supported runtimes
+  and lets `@types/node` track a current line. (The CLI itself still runs on the
+  full Node 20 range — see the `inquirer` note below.)
 
 ### Fixed
 
@@ -62,8 +62,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   22, and 24.
 - Dev dependencies: ESLint 10, `@eslint/js` 10, `typescript-eslint` 8.69. The
   `yarn npm audit` deprecation warning for ESLint 9 is gone.
-- `inquirer` upgraded to 14 (unblocked by the Node 20 floor; 12+ requires
-  Node 20.17), and `@types/node` moved to 20 to match `engines`.
+- `inquirer` upgraded to 12, and `@types/node` moved to 20 to match `engines`.
+  inquirer 12 ships a dual CommonJS/ESM build, so the CLI keeps working from
+  this package's CommonJS output across the whole Node 20 range. (inquirer 13+
+  is ESM-only, which would break `require("inquirer")` on Node 20.0–20.18 /
+  22.0–22.11, where `require(ESM)` is still flagged — so we stay on 12.)
 - `prepublishOnly` now runs lint, format check, and tests before building.
 
 ## [3.0.0] - 2026-08-10
