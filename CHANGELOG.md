@@ -6,6 +6,13 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed (breaking)
+
+- **Minimum supported Node is now 20** (`engines.node: ">=20"`). Node 18 reached
+  end-of-life in April 2025; dropping it lets the package track current
+  `inquirer` and `@types/node`. This is the only reason v4 is a major bump —
+  there are no API or on-disk format changes from v3.
+
 ### Fixed
 
 - `-p` with an absolute path wrote files under `<cwd>/<absolute path>` while
@@ -51,12 +58,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   scripts, a CI check, and a one-time mechanical reformat.
 - TypeScript now targets ES2022 (native on every supported Node), so the build
   no longer downlevels `async`/`await` or classes.
-- CI lints and checks formatting once on Node 22 and builds/tests on Node 18,
-  20, 22, and 24.
+- CI lints and checks formatting once on Node 22 and builds/tests on Node 20,
+  22, and 24.
 - Dev dependencies: ESLint 10, `@eslint/js` 10, `typescript-eslint` 8.69. The
-  `yarn npm audit` deprecation warning for ESLint 9 is gone. Runtime
-  dependencies are unchanged; `inquirer` stays on 11 because 12+ requires
-  Node 20.17, which would drop Node 18 support.
+  `yarn npm audit` deprecation warning for ESLint 9 is gone.
+- `inquirer` upgraded to 14 (unblocked by the Node 20 floor; 12+ requires
+  Node 20.17), and `@types/node` moved to 20 to match `engines`.
 - `prepublishOnly` now runs lint, format check, and tests before building.
 
 ## [3.0.0] - 2026-08-10
