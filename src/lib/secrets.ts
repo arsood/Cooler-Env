@@ -5,6 +5,7 @@ import { promisify } from "util";
 
 import { Paths, Secrets } from "./types";
 import { CoolerEnvError } from "./errors";
+import { DANGEROUS_KEYS } from "./constants";
 
 const scrypt = promisify(crypto.scrypt) as (
   password: string,
@@ -35,10 +36,6 @@ const BODY_HEADER_LENGTH = SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH;
 const MAGIC = Buffer.from("CENV", "ascii");
 const FORMAT_VERSION = 1;
 const VERSION_HEADER_LENGTH = MAGIC.length + 1;
-
-// Keys that would let a decrypted payload poison Object.prototype if it were
-// ever spread onto another object (e.g. process.env). Never round-trip these.
-const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 const deriveKey = (password: string, salt: Buffer): Promise<Buffer> =>
   scrypt(password, salt, KEY_LENGTH);
@@ -201,8 +198,14 @@ export const decryptSecrets = async (
   }
 };
 
-/** Decrypt the environment's encrypted file into a plain object. */
-export const readSecrets = async (paths: Paths): Promise<Secrets> => {
+/**
+ * Decrypt the environment's encrypted file, returning both the secrets and the
+ * key that unlocked them so a follow-up `writeSecrets` can reuse it instead of
+ * reading the key file a second time.
+ */
+export const readSecretsWithKey = async (
+  paths: Paths,
+): Promise<{ secrets: Secrets; password: string }> => {
   const password = await readKey(paths);
 
   let blob: Buffer;
@@ -217,30 +220,40 @@ export const readSecrets = async (paths: Paths): Promise<Secrets> => {
     throw err;
   }
 
-  return decryptSecrets(blob, password);
+  return { secrets: await decryptSecrets(blob, password), password };
 };
+
+/** Decrypt the environment's encrypted file into a plain object. */
+export const readSecrets = async (paths: Paths): Promise<Secrets> =>
+  (await readSecretsWithKey(paths)).secrets;
 
 /**
  * Encrypt `secrets` and atomically replace the environment's encrypted file.
  *
  * Ciphertext is produced in memory and written to a uniquely-named temp file
  * that is renamed over the target, so plaintext never touches disk and an
- * interrupted run cannot leave a half-written file.
+ * interrupted run cannot leave a half-written file. Pass `password` to reuse a
+ * key already read this run (e.g. from `readSecretsWithKey`); otherwise the key
+ * file is read here.
  */
 export const writeSecrets = async (
   paths: Paths,
   secrets: Secrets,
+  password?: string,
 ): Promise<void> => {
-  const blob = await encryptSecrets(secrets, await readKey(paths));
+  const blob = await encryptSecrets(
+    secrets,
+    password ?? (await readKey(paths)),
+  );
   const staging = path.join(
     paths.configDir,
     `.coolerenv-${process.pid}-${crypto.randomBytes(6).toString("hex")}.tmp`,
   );
 
   try {
-    fs.writeFileSync(staging, blob, { mode: 0o600 });
-    fs.renameSync(staging, paths.encryptedFile);
+    await fs.promises.writeFile(staging, blob, { mode: 0o600 });
+    await fs.promises.rename(staging, paths.encryptedFile);
   } finally {
-    if (fs.existsSync(staging)) fs.unlinkSync(staging);
+    await fs.promises.rm(staging, { force: true });
   }
 };

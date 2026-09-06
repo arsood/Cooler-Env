@@ -1,4 +1,4 @@
-import { validateKeyName, validateValue } from "../src/lib/guards";
+import { validateKeyName } from "../src/lib/guards";
 
 describe("validateKeyName", () => {
   it.each(["API_KEY", "_private", "PORT", "a", "X1", "DB_URL_2"])(
@@ -30,14 +30,4 @@ describe("validateKeyName", () => {
       expect(validateKeyName(name)).toMatch(/must start with a letter/);
     },
   );
-});
-
-describe("validateValue", () => {
-  it("accepts a non-empty value", () => {
-    expect(validateValue("x")).toBe(true);
-  });
-
-  it("rejects an empty value", () => {
-    expect(validateValue("")).toMatch(/enter a value/);
-  });
 });

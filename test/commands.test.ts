@@ -49,6 +49,14 @@ describe("add / edit / delete round-trips", () => {
     await expect(add(ENV)).rejects.toThrow(/already exists/);
   });
 
+  it("allows an empty-string value", async () => {
+    prompt.mockResolvedValueOnce({ keyName: "EMPTY", keyValue: "" });
+    await add(ENV);
+
+    const secrets = await loadEnv("test");
+    expect(secrets.EMPTY).toBe("");
+  });
+
   it("edits an existing key's value", async () => {
     prompt.mockResolvedValueOnce({ keyName: "API_KEY", keyValue: "old" });
     await add(ENV);
@@ -116,11 +124,15 @@ describe("secret value masking", () => {
     sandbox.restore();
   });
 
-  it("masks the value prompt on add by default", async () => {
+  it("masks the value prompt on add by default (fully hidden, no mask)", async () => {
     prompt.mockResolvedValueOnce({ keyName: "API_KEY", keyValue: "s" });
     await add(ENV);
 
-    expect(question("keyValue")).toMatchObject({ type: "password", mask: "*" });
+    const q = question("keyValue");
+    expect(q?.type).toBe("password");
+    // No `mask` -> the password prompt hides the value entirely, including its
+    // length. A "*" mask would leak the length into scrollback.
+    expect(q?.mask).toBeUndefined();
   });
 
   it("shows the value prompt on add with --show", async () => {

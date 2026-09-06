@@ -17,8 +17,10 @@ run(process.argv.slice(2)).catch((error: unknown) => {
     return;
   }
 
-  // inquirer throws this when the user aborts a prompt (e.g. Ctrl+C).
+  // inquirer throws this when the user aborts a prompt (e.g. Ctrl+C). Use the
+  // conventional SIGINT exit code so scripts can tell an interrupt from an error.
   if (error instanceof Error && error.name === "ExitPromptError") {
+    process.exitCode = 130;
     console.error(chalk.yellow("Cancelled."));
     return;
   }

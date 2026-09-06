@@ -1,4 +1,12 @@
-import { encryptSecrets, decryptSecrets } from "../src/lib/secrets";
+import fs from "fs";
+import os from "os";
+import path from "path";
+
+import {
+  encryptSecrets,
+  decryptSecrets,
+  writeSecrets,
+} from "../src/lib/secrets";
 
 const KEY = "a".repeat(64);
 
@@ -114,5 +122,36 @@ describe("encryptSecrets / decryptSecrets", () => {
     await expect(
       decryptSecrets(Buffer.from("CENV", "ascii"), KEY),
     ).rejects.toThrow(/truncated or corrupt/);
+  });
+});
+
+describe("writeSecrets", () => {
+  it("removes the staging temp file when the write fails mid-way", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "coolerenv-ws-"));
+    const paths = {
+      configDir: dir,
+      keyFile: path.join(dir, "t.key"),
+      encryptedFile: path.join(dir, "t.yml.enc"),
+    };
+
+    // Fail the atomic rename after the staging file has been written, so the
+    // `finally` cleanup is the only thing that can remove it.
+    const rename = jest
+      .spyOn(fs.promises, "rename")
+      .mockRejectedValueOnce(new Error("rename boom"));
+
+    try {
+      await expect(writeSecrets(paths, { A: "1" }, KEY)).rejects.toThrow(
+        "rename boom",
+      );
+
+      const leftovers = fs
+        .readdirSync(dir)
+        .filter((f) => f.startsWith(".coolerenv-"));
+      expect(leftovers).toEqual([]);
+    } finally {
+      rename.mockRestore();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
