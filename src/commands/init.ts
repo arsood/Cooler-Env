@@ -5,18 +5,34 @@ import crypto from "crypto";
 import inquirer from "inquirer";
 
 import { Argv } from "../lib/types";
-import {
-  resolvePaths,
-  requireEnv,
-  configPathOf,
-  DEFAULT_CONFIG_DIR,
-} from "../lib/paths";
+import { resolvePaths, requireEnv, configPathOf } from "../lib/paths";
 import { writeSecrets } from "../lib/secrets";
 
-/** Add the key file to .gitignore, creating the file and de-duplicating. */
-const ensureGitignored = (relativeDir: string, env: string): void => {
+/**
+ * Add the key file to the current directory's .gitignore, creating the file
+ * and de-duplicating. The entry is the key's path relative to cwd in POSIX
+ * form (git pattern syntax), so `-p ./config/` still yields `config/dev.key`.
+ * A key outside cwd cannot be expressed in this .gitignore, so warn instead.
+ */
+const ensureGitignored = (keyFile: string): void => {
   const gitignorePath = path.join(process.cwd(), ".gitignore");
-  const entry = `${relativeDir}/${env}.key`;
+  // Compare real paths so a symlinked cwd or config dir isn't misread as
+  // "outside" the project.
+  const relative = path.relative(
+    fs.realpathSync(process.cwd()),
+    fs.realpathSync(keyFile)
+  );
+
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    console.log(
+      chalk.yellow(
+        `Warning: ${keyFile} is outside the current directory, so it was NOT added to .gitignore. Make sure it is never committed.`
+      )
+    );
+    return;
+  }
+
+  const entry = relative.split(path.sep).join("/");
 
   const existing = fs.existsSync(gitignorePath)
     ? fs.readFileSync(gitignorePath, "utf8")
@@ -28,15 +44,19 @@ const ensureGitignored = (relativeDir: string, env: string): void => {
 
   if (alreadyIgnored) return;
 
-  const prefix = existing.length && !existing.endsWith("\n") ? "\n" : "";
-  fs.appendFileSync(gitignorePath, `${prefix}\n# Cooler-Env secret key\n${entry}\n`);
+  // Separate from existing content with a blank line; no leading blank line
+  // when creating the file.
+  const separator = !existing.length ? "" : existing.endsWith("\n") ? "\n" : "\n\n";
+  fs.appendFileSync(
+    gitignorePath,
+    `${separator}# Cooler-Env secret key\n${entry}\n`
+  );
 
   console.log(chalk.green(`Added ${entry} to .gitignore`));
 };
 
 const init = async (argv: Argv): Promise<void> => {
   const env = requireEnv(argv);
-  const relativeDir = configPathOf(argv) ?? DEFAULT_CONFIG_DIR;
   const paths = resolvePaths(env, configPathOf(argv));
 
   const alreadyExists =
@@ -70,7 +90,7 @@ const init = async (argv: Argv): Promise<void> => {
   fs.writeFileSync(paths.keyFile, newKey, { mode: 0o600 });
   console.log(chalk.green(`Wrote encryption key to: ${paths.keyFile}`));
 
-  ensureGitignored(relativeDir, env);
+  ensureGitignored(paths.keyFile);
 
   await writeSecrets(paths, {});
   console.log(chalk.green(`Wrote encrypted file to: ${paths.encryptedFile}`));

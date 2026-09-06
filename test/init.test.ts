@@ -1,4 +1,5 @@
 import fs from "fs";
+import os from "os";
 import path from "path";
 
 jest.mock("inquirer", () => ({
@@ -74,5 +75,61 @@ describe("init", () => {
 
   it("rejects a missing environment name", async () => {
     await expect(init({ _: [] })).rejects.toThrow(/valid environment/);
+  });
+
+  it("rejects an environment name that escapes the config directory", async () => {
+    await expect(init({ _: [], e: "../escape" })).rejects.toThrow(
+      /Invalid environment name/
+    );
+    expect(fs.existsSync(path.join(sandbox.dir, "escape.key"))).toBe(false);
+  });
+
+  it("writes a git-matchable .gitignore entry for a messy -p", async () => {
+    await init({ _: [], e: "dev", p: "./config/" });
+
+    const gitignore = fs.readFileSync(
+      path.join(sandbox.dir, ".gitignore"),
+      "utf8"
+    );
+    expect(gitignore.split(/\r?\n/)).toContain("config/dev.key");
+  });
+
+  it("stores files at an absolute -p inside cwd and gitignores them relatively", async () => {
+    const abs = path.join(sandbox.dir, "nested", "secrets");
+    await init({ _: [], e: "dev", p: abs });
+
+    expect(fs.existsSync(path.join(abs, "dev.key"))).toBe(true);
+    const gitignore = fs.readFileSync(
+      path.join(sandbox.dir, ".gitignore"),
+      "utf8"
+    );
+    expect(gitignore.split(/\r?\n/)).toContain("nested/secrets/dev.key");
+  });
+
+  it("warns instead of gitignoring a key outside cwd", async () => {
+    const outside = fs.mkdtempSync(path.join(os.tmpdir(), "coolerenv-out-"));
+    const warn = jest.spyOn(console, "log").mockImplementation(() => {});
+
+    try {
+      await init({ _: [], e: "dev", p: outside });
+
+      expect(fs.existsSync(path.join(outside, "dev.key"))).toBe(true);
+      expect(fs.existsSync(path.join(sandbox.dir, ".gitignore"))).toBe(false);
+      expect(warn.mock.calls.flat().join("\n")).toMatch(/NOT added to .gitignore/);
+    } finally {
+      warn.mockRestore();
+      fs.rmSync(outside, { recursive: true, force: true });
+    }
+  });
+
+  it("appends cleanly to a .gitignore without a trailing newline", async () => {
+    fs.writeFileSync(path.join(sandbox.dir, ".gitignore"), "node_modules");
+    await init({ _: [], e: "test" });
+
+    const lines = fs
+      .readFileSync(path.join(sandbox.dir, ".gitignore"), "utf8")
+      .split(/\r?\n/);
+    expect(lines).toContain("node_modules");
+    expect(lines).toContain("config/test.key");
   });
 });

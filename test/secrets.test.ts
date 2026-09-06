@@ -39,6 +39,17 @@ describe("encryptSecrets / decryptSecrets", () => {
     );
   });
 
+  it.each(["null", "[1,2]", '"text"'])(
+    "rejects a decrypted payload that is not an object (%s)",
+    async (json) => {
+      const blob = await encryptSecrets(JSON.parse(json), KEY);
+
+      await expect(decryptSecrets(blob, KEY)).rejects.toThrow(
+        /not a key\/value object/
+      );
+    }
+  );
+
   it("strips prototype-polluting keys", async () => {
     // Encrypt a raw payload that contains a dangerous key.
     const blob = await encryptSecrets(

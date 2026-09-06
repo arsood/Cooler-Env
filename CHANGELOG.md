@@ -4,6 +4,37 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `-p` with an absolute path wrote files under `<cwd>/<absolute path>` while
+  gitignoring the real absolute path. Paths are now resolved with
+  `path.resolve`, so absolute and relative config directories both work.
+- The `.gitignore` entry written by `init` is now derived from the key's real
+  path relative to the current directory in POSIX form, so `-p ./config/` yields
+  `config/dev.key` instead of the unmatchable `./config//dev.key`. A key
+  outside the current directory produces a warning instead of a broken entry.
+- Environment names are validated (letters, numbers, `_`, `-`, `.`) in both the
+  CLI and `loadEnv`, so `-e ../escape` can no longer write files outside the
+  config directory. Repeating `-e` or `-p` is rejected instead of joining the
+  values into `a,b`.
+- `-e` and `-p` are parsed as strings, so `-p 123` is no longer silently
+  ignored.
+- Command lookup no longer resolves `Object.prototype` members: running
+  `cooler-env constructor` now fails with the usual "valid command" error
+  instead of exiting 0 silently.
+- CLI errors are printed to stderr, and the banner is only shown on a TTY so
+  piped output stays clean.
+- A decrypted payload that is valid JSON but not an object (`null`, an array)
+  now throws a `CoolerEnvError` instead of a raw `TypeError`.
+- A freshly created `.gitignore` no longer starts with a blank line.
+
+### Added
+
+- `CoolerEnvError` is exported from the package entry point so callers can
+  `instanceof` it, as the README already documented.
+
 ## [3.0.0] - 2026-08-10
 
 The v3 line is a security and API overhaul. **It is a hard break from v2:**

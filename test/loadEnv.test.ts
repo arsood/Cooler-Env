@@ -30,6 +30,18 @@ describe("loadEnv", () => {
 
   it("throws without an environment name", async () => {
     await expect(loadEnv("")).rejects.toThrow(/valid environment name/);
+    await expect(loadEnv(undefined as unknown as string)).rejects.toThrow(
+      /valid environment name/
+    );
+  });
+
+  it("rejects an environment name that escapes the config directory", async () => {
+    await expect(loadEnv("../etc")).rejects.toThrow(/Invalid environment name/);
+  });
+
+  it("exports CoolerEnvError so callers can instanceof it", async () => {
+    const { CoolerEnvError } = await import("../src/index");
+    await expect(loadEnv("test")).rejects.toBeInstanceOf(CoolerEnvError);
   });
 
   it("throws when the environment is not initialized", async () => {

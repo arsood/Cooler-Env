@@ -3,3 +3,4 @@
 export { loadEnv } from "./loadEnv";
 export type { LoadEnvOptions } from "./loadEnv";
 export type { Secrets } from "./lib/types";
+export { CoolerEnvError } from "./lib/errors";
