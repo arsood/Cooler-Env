@@ -6,13 +6,37 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Check formatting
+        run: yarn format:check
+
   build:
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        node-version: [18, 20, 22]
+        # Every Node line the package supports (engines >=18), plus current.
+        node-version: [18, 20, 22, 24]
 
     steps:
       - uses: actions/checkout@v4
@@ -27,9 +51,6 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --immutable
-
-      - name: Lint
-        run: yarn lint
 
       - name: Build
         run: yarn build
