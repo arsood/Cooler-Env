@@ -61,6 +61,37 @@ export const gitignoreEntryFor = (
   );
 };
 
+/**
+ * The nearest ancestor of `dir` (inclusive) that is a git working tree — has a
+ * `.git` entry, a directory for a normal repo or a file for a worktree /
+ * submodule — or `undefined` if none. Honors `GIT_CEILING_DIRECTORIES` (like
+ * git itself) so the walk can be bounded, which also keeps tests hermetic
+ * regardless of a `.git` that happens to sit above the temp dir.
+ */
+const gitRootOf = (dir: string): string | undefined => {
+  const ceilings = new Set(
+    (process.env.GIT_CEILING_DIRECTORIES ?? "")
+      .split(path.delimiter)
+      .filter(Boolean),
+  );
+
+  for (let current = dir; ;) {
+    if (fs.existsSync(path.join(current, ".git"))) return current;
+    const parent = path.dirname(current);
+    // Stop at the filesystem root, or before ascending into a ceiling
+    // directory (git "does not look at them or their parents").
+    if (parent === current || ceilings.has(parent)) return undefined;
+    current = parent;
+  }
+};
+
+/** Whether `p` is `ancestor` itself or a path nested under it. */
+const isWithin = (ancestor: string, p: string): boolean => {
+  const rel = path.relative(ancestor, p);
+  if (path.isAbsolute(rel)) return false; // different root/drive
+  return rel === "" || (rel !== ".." && !rel.startsWith(`..${path.sep}`));
+};
+
 /** Append `entry` to cwd's .gitignore, creating the file and de-duplicating. */
 const ensureGitignored = (entry: string): void => {
   const gitignorePath = path.join(process.cwd(), ".gitignore");
@@ -141,6 +172,18 @@ const init = async (argv: Argv): Promise<void> => {
   console.log(chalk.green(`Wrote encryption key to: ${paths.keyFile}`));
 
   if (entry !== undefined) {
+    // The .gitignore is written in cwd, so git only reads it — and so only
+    // ignores the key — when the key's repository root is at or above cwd. If
+    // there's no repo, or the key sits in a repo nested *below* cwd, this
+    // .gitignore is never consulted and the key is unprotected.
+    const cwd = fs.realpathSync(process.cwd());
+    const root = gitRootOf(fs.realpathSync(paths.configDir));
+    if (root === undefined || !isWithin(root, cwd)) {
+      warn(
+        `Warning: no git repository containing ${paths.keyFile} at or above ${cwd}, so the .gitignore written here will not protect it. Make sure the key is never committed.`,
+      );
+    }
+
     try {
       ensureGitignored(entry);
     } catch (err) {
