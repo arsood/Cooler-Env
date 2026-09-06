@@ -131,6 +131,10 @@ const init = async (argv: Argv): Promise<void> => {
 
   const newKey = crypto.randomBytes(32).toString("hex");
   fs.writeFileSync(paths.keyFile, newKey, { mode: 0o600 });
+  // writeFileSync's `mode` only applies when the file is created, so on a
+  // re-init the existing key file keeps its old (possibly looser) permissions.
+  // Force 0600 explicitly.
+  fs.chmodSync(paths.keyFile, 0o600);
   console.log(chalk.green(`Wrote encryption key to: ${paths.keyFile}`));
 
   if (entry !== undefined) {

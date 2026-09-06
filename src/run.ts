@@ -25,8 +25,12 @@ export const COMMAND_NAMES = Object.keys(commands);
  */
 export const run = async (args: string[]): Promise<void> => {
   // Declare -e/-p as strings so minimist never coerces them to numbers or
-  // booleans (e.g. `-p 123` or a bare `-e`).
-  const argv = minimist(args, { string: ["e", "p"] }) as unknown as Argv;
+  // booleans (e.g. `-p 123` or a bare `-e`), and --show as a boolean so it
+  // never swallows a following argument.
+  const argv = minimist(args, {
+    string: ["e", "p"],
+    boolean: ["show"],
+  }) as unknown as Argv;
   const name = argv._[0];
 
   // Look up as an own property so names like "constructor" or "toString"

@@ -12,19 +12,29 @@ const scrypt = promisify(crypto.scrypt) as (
   keylen: number,
 ) => Promise<Buffer>;
 
-// Authenticated encryption. The on-disk format is a single binary blob:
+// Authenticated encryption. The on-disk format is a single binary blob with a
+// versioned header so the KDF/cipher parameters can evolve without guesswork:
 //
-//   [ salt (16) ][ iv (12) ][ authTag (16) ][ ciphertext ... ]
+//   [ magic "CENV" (4) ][ version (1) ][ salt (16) ][ iv (12) ][ authTag (16) ][ ciphertext ... ]
 //
 // A fresh random salt + IV is generated on every write, the key is derived
 // from the secret key via scrypt, and GCM's auth tag makes tampering (or a
 // wrong key) fail loudly instead of yielding garbage.
+//
+// Blobs written by v3 have no magic prefix — just the salt/iv/tag/ciphertext
+// body — and are still read: a missing magic is treated as format version 0.
 const ALGORITHM = "aes-256-gcm";
 const SALT_LENGTH = 16;
 const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
 const KEY_LENGTH = 32;
-const HEADER_LENGTH = SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH;
+const BODY_HEADER_LENGTH = SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH;
+
+// 4-byte magic + 1 version byte. New writes use version 1; the collision odds
+// of a v3 salt happening to start with these exact 4 bytes are 1 in 2^32.
+const MAGIC = Buffer.from("CENV", "ascii");
+const FORMAT_VERSION = 1;
+const VERSION_HEADER_LENGTH = MAGIC.length + 1;
 
 // Keys that would let a decrypted payload poison Object.prototype if it were
 // ever spread onto another object (e.g. process.env). Never round-trip these.
@@ -71,7 +81,14 @@ export const encryptSecrets = async (
     cipher.final(),
   ]);
 
-  return Buffer.concat([salt, iv, cipher.getAuthTag(), ciphertext]);
+  return Buffer.concat([
+    MAGIC,
+    Buffer.from([FORMAT_VERSION]),
+    salt,
+    iv,
+    cipher.getAuthTag(),
+    ciphertext,
+  ]);
 };
 
 /** Decrypt an on-disk blob back into a sanitized secrets object. */
@@ -79,14 +96,35 @@ export const decryptSecrets = async (
   blob: Buffer,
   password: string,
 ): Promise<Secrets> => {
-  if (blob.length < HEADER_LENGTH) {
+  // A magic prefix means a versioned blob; without it, treat the whole blob as
+  // a v3 (version 0) body for backward compatibility.
+  let offset = 0;
+  if (
+    blob.length >= MAGIC.length &&
+    blob.subarray(0, MAGIC.length).equals(MAGIC)
+  ) {
+    const version = blob[MAGIC.length];
+    if (version !== FORMAT_VERSION) {
+      throw new CoolerEnvError(
+        `Unsupported encrypted file format version ${version}. Upgrade cooler-env to read this file.`,
+      );
+    }
+    offset = VERSION_HEADER_LENGTH;
+  }
+
+  if (blob.length < offset + BODY_HEADER_LENGTH) {
     throw new CoolerEnvError("The encrypted file is truncated or corrupt.");
   }
 
-  const salt = blob.subarray(0, SALT_LENGTH);
-  const iv = blob.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
-  const authTag = blob.subarray(SALT_LENGTH + IV_LENGTH, HEADER_LENGTH);
-  const ciphertext = blob.subarray(HEADER_LENGTH);
+  const saltStart = offset;
+  const ivStart = saltStart + SALT_LENGTH;
+  const authTagStart = ivStart + IV_LENGTH;
+  const ciphertextStart = authTagStart + AUTH_TAG_LENGTH;
+
+  const salt = blob.subarray(saltStart, ivStart);
+  const iv = blob.subarray(ivStart, authTagStart);
+  const authTag = blob.subarray(authTagStart, ciphertextStart);
+  const ciphertext = blob.subarray(ciphertextStart);
 
   const decipher = crypto.createDecipheriv(
     ALGORITHM,

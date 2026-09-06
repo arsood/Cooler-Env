@@ -87,3 +87,74 @@ describe("add / edit / delete round-trips", () => {
     );
   });
 });
+
+describe("secret value masking", () => {
+  let sandbox: Sandbox;
+  let log: jest.SpyInstance;
+
+  // Find a prompt question by name across every recorded prompt() call.
+  const question = (name: string): Record<string, unknown> | undefined => {
+    for (const call of prompt.mock.calls) {
+      const questions = call[0];
+      if (Array.isArray(questions)) {
+        const match = questions.find((q) => q && q.name === name);
+        if (match) return match;
+      }
+    }
+    return undefined;
+  };
+
+  beforeEach(async () => {
+    sandbox = makeSandbox();
+    prompt.mockReset();
+    log = jest.spyOn(console, "log").mockImplementation(() => {});
+    await init(ENV);
+  });
+
+  afterEach(() => {
+    log.mockRestore();
+    sandbox.restore();
+  });
+
+  it("masks the value prompt on add by default", async () => {
+    prompt.mockResolvedValueOnce({ keyName: "API_KEY", keyValue: "s" });
+    await add(ENV);
+
+    expect(question("keyValue")).toMatchObject({ type: "password", mask: "*" });
+  });
+
+  it("shows the value prompt on add with --show", async () => {
+    prompt.mockResolvedValueOnce({ keyName: "API_KEY", keyValue: "s" });
+    await add({ ...ENV, show: true });
+
+    expect(question("keyValue")?.type).toBe("input");
+  });
+
+  it("masks the edit prompt and hides the current value by default", async () => {
+    prompt.mockResolvedValueOnce({ keyName: "API_KEY", keyValue: "old" });
+    await add(ENV);
+
+    prompt
+      .mockResolvedValueOnce({ keyToEdit: "API_KEY" })
+      .mockResolvedValueOnce({ keyEditedValue: "new" });
+    await edit(ENV);
+
+    const q = question("keyEditedValue");
+    expect(q?.type).toBe("password");
+    expect(q?.default).toBeUndefined();
+  });
+
+  it("prefills the current value on edit with --show", async () => {
+    prompt.mockResolvedValueOnce({ keyName: "API_KEY", keyValue: "old" });
+    await add(ENV);
+
+    prompt
+      .mockResolvedValueOnce({ keyToEdit: "API_KEY" })
+      .mockResolvedValueOnce({ keyEditedValue: "new" });
+    await edit({ ...ENV, show: true });
+
+    const q = question("keyEditedValue");
+    expect(q?.type).toBe("input");
+    expect(q?.default).toBe("old");
+  });
+});

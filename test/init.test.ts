@@ -80,6 +80,17 @@ describe("init", () => {
     expect(occurrences).toBe(1);
   });
 
+  it("resets the key file to 0600 on re-init even if it was loosened", async () => {
+    await init({ _: [], e: "test" });
+    const keyFile = path.join(sandbox.dir, "config", "test.key");
+    fs.chmodSync(keyFile, 0o644);
+
+    prompt.mockResolvedValueOnce({ confirmOverwrite: true });
+    await init({ _: [], e: "test" });
+
+    expect(fs.statSync(keyFile).mode & 0o777).toBe(0o600);
+  });
+
   it("aborts an overwrite when the user declines", async () => {
     await init({ _: [], e: "test" });
     const originalKey = fs.readFileSync(

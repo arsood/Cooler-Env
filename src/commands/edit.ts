@@ -28,12 +28,18 @@ const edit = async (argv: Argv): Promise<void> => {
     },
   ]);
 
+  // By default, mask the new value and do NOT pre-fill the current one, so a
+  // secret is never echoed to the terminal. `--show` reveals typing and offers
+  // the current value as the editable default.
+  const show = argv.show === true;
+
   const { keyEditedValue } = await inquirer.prompt<{ keyEditedValue: string }>([
     {
       name: "keyEditedValue",
-      type: "input",
+      type: show ? "input" : "password",
+      mask: show ? undefined : "*",
       message: "What is the new value of this key?",
-      default: secrets[keyToEdit],
+      default: show ? secrets[keyToEdit] : undefined,
       validate: validateValue,
     },
   ]);

@@ -61,4 +61,28 @@ describe("encryptSecrets / decryptSecrets", () => {
     expect(result.SAFE).toBe("ok");
     expect(Object.keys(result)).not.toContain("__proto__");
   });
+
+  it("prefixes new blobs with the CENV magic and version 1", async () => {
+    const blob = await encryptSecrets({ A: "1" }, KEY);
+
+    expect(blob.subarray(0, 4).toString("ascii")).toBe("CENV");
+    expect(blob[4]).toBe(1);
+  });
+
+  it("still reads a v3 (headerless) blob", async () => {
+    // A v3 blob is the versioned body without the 5-byte magic header.
+    const versioned = await encryptSecrets({ A: "1", B: "2" }, KEY);
+    const legacy = versioned.subarray(5);
+
+    expect(await decryptSecrets(legacy, KEY)).toEqual({ A: "1", B: "2" });
+  });
+
+  it("rejects an unsupported format version", async () => {
+    const blob = await encryptSecrets({ A: "1" }, KEY);
+    blob[4] = 2; // bump the version byte to an unknown value
+
+    await expect(decryptSecrets(blob, KEY)).rejects.toThrow(
+      /Unsupported encrypted file format version 2/,
+    );
+  });
 });
