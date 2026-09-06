@@ -18,12 +18,16 @@ const ENV = { _: [], e: "test" };
 describe("loadEnv", () => {
   let sandbox: Sandbox;
 
+  let log: jest.SpyInstance;
+
   beforeEach(() => {
     sandbox = makeSandbox();
     prompt.mockReset();
+    log = jest.spyOn(console, "log").mockImplementation(() => {});
   });
 
   afterEach(() => {
+    log.mockRestore();
     sandbox.restore();
     delete process.env.TOKEN;
   });
@@ -37,6 +41,17 @@ describe("loadEnv", () => {
 
   it("rejects an environment name that escapes the config directory", async () => {
     await expect(loadEnv("../etc")).rejects.toThrow(/Invalid environment name/);
+    await expect(loadEnv("a/b")).rejects.toThrow(/Invalid environment name/);
+  });
+
+  it("accepts an absolute configPath", async () => {
+    const abs = path.join(sandbox.dir, "elsewhere");
+    await init({ _: [], e: "test", p: abs });
+    prompt.mockResolvedValueOnce({ keyName: "TOKEN", keyValue: "abc123" });
+    await add({ _: [], e: "test", p: abs });
+
+    const secrets = await loadEnv("test", { configPath: abs });
+    expect(secrets.TOKEN).toBe("abc123");
   });
 
   it("exports CoolerEnvError so callers can instanceof it", async () => {

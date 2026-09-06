@@ -7,21 +7,45 @@ jest.mock("inquirer", () => ({
   default: { prompt: jest.fn() },
 }));
 
+import { execFileSync } from "child_process";
+
 import inquirer from "inquirer";
-import init from "../src/commands/init";
+import init, { gitignoreEntryFor } from "../src/commands/init";
 import { makeSandbox, Sandbox } from "./sandbox";
 
 const prompt = inquirer.prompt as unknown as jest.Mock;
 
+const readGitignore = (dir: string): string[] =>
+  fs.readFileSync(path.join(dir, ".gitignore"), "utf8").split(/\r?\n/);
+
+/** Ask git whether `file` (relative to `dir`) is ignored by `dir/.gitignore`. */
+const gitIgnores = (dir: string, file: string): boolean => {
+  execFileSync("git", ["init", "-q", "."], { cwd: dir });
+  try {
+    execFileSync("git", ["check-ignore", "-q", file], { cwd: dir });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 describe("init", () => {
   let sandbox: Sandbox;
+  let log: jest.SpyInstance;
+  let error: jest.SpyInstance;
 
   beforeEach(() => {
     sandbox = makeSandbox();
     prompt.mockReset();
+    log = jest.spyOn(console, "log").mockImplementation(() => {});
+    error = jest.spyOn(console, "error").mockImplementation(() => {});
   });
 
-  afterEach(() => sandbox.restore());
+  afterEach(() => {
+    log.mockRestore();
+    error.mockRestore();
+    sandbox.restore();
+  });
 
   it("creates a key file and an encrypted file", async () => {
     await init({ _: [], e: "test" });
@@ -51,7 +75,7 @@ describe("init", () => {
     );
     const occurrences = gitignore
       .split(/\r?\n/)
-      .filter((line) => line.trim() === "config/test.key").length;
+      .filter((line) => line.trim() === "/config/test.key").length;
 
     expect(occurrences).toBe(1);
   });
@@ -84,14 +108,11 @@ describe("init", () => {
     expect(fs.existsSync(path.join(sandbox.dir, "escape.key"))).toBe(false);
   });
 
-  it("writes a git-matchable .gitignore entry for a messy -p", async () => {
+  it("writes an anchored, git-matchable .gitignore entry for a messy -p", async () => {
     await init({ _: [], e: "dev", p: "./config/" });
 
-    const gitignore = fs.readFileSync(
-      path.join(sandbox.dir, ".gitignore"),
-      "utf8"
-    );
-    expect(gitignore.split(/\r?\n/)).toContain("config/dev.key");
+    expect(readGitignore(sandbox.dir)).toContain("/config/dev.key");
+    expect(gitIgnores(sandbox.dir, "config/dev.key")).toBe(true);
   });
 
   it("stores files at an absolute -p inside cwd and gitignores them relatively", async () => {
@@ -99,27 +120,77 @@ describe("init", () => {
     await init({ _: [], e: "dev", p: abs });
 
     expect(fs.existsSync(path.join(abs, "dev.key"))).toBe(true);
-    const gitignore = fs.readFileSync(
-      path.join(sandbox.dir, ".gitignore"),
-      "utf8"
-    );
-    expect(gitignore.split(/\r?\n/)).toContain("nested/secrets/dev.key");
+    expect(readGitignore(sandbox.dir)).toContain("/nested/secrets/dev.key");
+  });
+
+  it("does not treat a directory named ..foo as outside cwd", async () => {
+    await init({ _: [], e: "dev", p: "..foo" });
+
+    expect(readGitignore(sandbox.dir)).toContain("/..foo/dev.key");
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it("anchors the entry so -p . only ignores the top-level key", async () => {
+    await init({ _: [], e: "dev", p: "." });
+
+    expect(readGitignore(sandbox.dir)).toContain("/dev.key");
+    fs.mkdirSync(path.join(sandbox.dir, "sub"));
+    fs.writeFileSync(path.join(sandbox.dir, "sub", "dev.key"), "x");
+    expect(gitIgnores(sandbox.dir, "dev.key")).toBe(true);
+    expect(gitIgnores(sandbox.dir, "sub/dev.key")).toBe(false);
+  });
+
+  it.each(["#secrets", "!secrets", "[s]ecrets", "sec*rets", "who?", "sp ace"])(
+    "escapes gitignore metacharacters in -p %j so git matches the key",
+    async (dir) => {
+      await init({ _: [], e: "dev", p: dir });
+
+      expect(gitIgnores(sandbox.dir, `${dir}/dev.key`)).toBe(true);
+    }
+  );
+
+  it("escapes metacharacters in the environment name too", async () => {
+    await init({ _: [], e: "a#b" });
+
+    expect(gitIgnores(sandbox.dir, "config/a#b.key")).toBe(true);
   });
 
   it("warns instead of gitignoring a key outside cwd", async () => {
     const outside = fs.mkdtempSync(path.join(os.tmpdir(), "coolerenv-out-"));
-    const warn = jest.spyOn(console, "log").mockImplementation(() => {});
 
     try {
       await init({ _: [], e: "dev", p: outside });
 
       expect(fs.existsSync(path.join(outside, "dev.key"))).toBe(true);
       expect(fs.existsSync(path.join(sandbox.dir, ".gitignore"))).toBe(false);
-      expect(warn.mock.calls.flat().join("\n")).toMatch(/NOT added to .gitignore/);
+      expect(error.mock.calls.flat().join("\n")).toMatch(
+        /NOT added to .gitignore/
+      );
     } finally {
-      warn.mockRestore();
       fs.rmSync(outside, { recursive: true, force: true });
     }
+  });
+
+  it("warns and still completes when .gitignore cannot be written", async () => {
+    fs.mkdirSync(path.join(sandbox.dir, ".gitignore")); // a directory, not a file
+
+    await init({ _: [], e: "dev" });
+
+    expect(fs.existsSync(path.join(sandbox.dir, "config", "dev.yml.enc"))).toBe(
+      true
+    );
+    expect(error.mock.calls.flat().join("\n")).toMatch(
+      /could not update .gitignore/
+    );
+  });
+
+  it("does not duplicate an unanchored entry written by an earlier version", async () => {
+    fs.writeFileSync(path.join(sandbox.dir, ".gitignore"), "config/test.key\n");
+    await init({ _: [], e: "test" });
+
+    expect(readGitignore(sandbox.dir).filter((l) => l.endsWith("test.key"))).toEqual(
+      ["config/test.key"]
+    );
   });
 
   it("appends cleanly to a .gitignore without a trailing newline", async () => {
@@ -130,6 +201,6 @@ describe("init", () => {
       .readFileSync(path.join(sandbox.dir, ".gitignore"), "utf8")
       .split(/\r?\n/);
     expect(lines).toContain("node_modules");
-    expect(lines).toContain("config/test.key");
+    expect(lines).toContain("/config/test.key");
   });
 });

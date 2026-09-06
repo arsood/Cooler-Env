@@ -12,11 +12,17 @@ import { makeSandbox, Sandbox } from "./sandbox";
 describe("run (CLI dispatch)", () => {
   let sandbox: Sandbox;
 
+  let log: jest.SpyInstance;
+
   beforeEach(() => {
     sandbox = makeSandbox();
+    log = jest.spyOn(console, "log").mockImplementation(() => {});
   });
 
-  afterEach(() => sandbox.restore());
+  afterEach(() => {
+    log.mockRestore();
+    sandbox.restore();
+  });
 
   it("rejects a missing command", async () => {
     await expect(run([])).rejects.toThrow(/valid command/);
@@ -43,5 +49,24 @@ describe("run (CLI dispatch)", () => {
 
   it("rejects a bare -e with no value", async () => {
     await expect(run(["init", "-e"])).rejects.toThrow(/-e option/);
+    await expect(run(["init", "-e", "-p", "x"])).rejects.toThrow(/-e option/);
+    await expect(run(["init", "--no-e"])).rejects.toThrow(/-e option/);
+  });
+
+  it("rejects a repeated -e instead of joining the values", async () => {
+    await expect(run(["init", "-e", "a", "-e", "b"])).rejects.toThrow(
+      /only once/
+    );
+    expect(fs.existsSync(path.join(sandbox.dir, "config"))).toBe(false);
+  });
+
+  it("rejects a bare -p instead of silently using config/", async () => {
+    await expect(run(["init", "-e", "dev", "-p"])).rejects.toThrow(
+      /-p option requires/
+    );
+    await expect(run(["init", "-e", "dev", "-p", "-x"])).rejects.toThrow(
+      /-p option requires/
+    );
+    expect(fs.existsSync(path.join(sandbox.dir, "config"))).toBe(false);
   });
 });

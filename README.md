@@ -69,12 +69,12 @@ All commands share the same two options:
 
 | Option          | Required | Description                                                                    |
 | --------------- | -------- | ------------------------------------------------------------------------------ |
-| `-e <env>`      | ✅       | Environment name (e.g. `development`, `production`). Letters, numbers, `_`, `-` and `.` only. |
+| `-e <env>`      | ✅       | Environment name (e.g. `development`, `production`). Becomes a file name, so it cannot contain `/` or `\`. |
 | `-p <path>`     | ❌       | Directory for the key/encrypted files, relative to the current directory or absolute. Defaults to `config`. |
 
 ### `init`
 
-Sets up a new environment, generating the `.key` and `.yml.enc` files and adding the key to `.gitignore`.
+Sets up a new environment, generating the `.key` and `.yml.enc` files and adding the key to the `.gitignore` in the current directory (run it from your repository root). If the key lives outside the current directory, `init` warns instead, and you must ignore it yourself.
 
 ```bash
 cooler-env init -e development
@@ -157,7 +157,7 @@ try {
   await loadEnv("production");
 } catch (err) {
   if (err instanceof CoolerEnvError) {
-    console.error(err.message); // e.g. "Encrypted file not found at config/production.yml.enc."
+    console.error(err.message); // e.g. "Encrypted file not found at /app/config/production.yml.enc."
   } else {
     throw err;
   }

@@ -9,37 +9,56 @@ import {
 import { makeSandbox, Sandbox } from "./sandbox";
 
 describe("validateEnvName", () => {
-  it.each(["development", "prod-1", "my_env", "v2.0"])("accepts %s", (env) => {
+  it.each([
+    "development",
+    "prod-1",
+    "my_env",
+    "v2.0",
+    "staging@eu",
+    "täst",
+    "my env",
+    ".hidden",
+    "..foo",
+  ])("accepts %s", (env) => {
     expect(validateEnvName(env)).toBe(env);
   });
 
-  it.each(["", " ", "../escape", "a/b", "a,b", ".", "..", ".hidden"])(
+  it.each(["", " ", "../escape", "a/b", "a\\b", "a\0b", ".", ".."])(
     "rejects %j",
     (env) => {
       expect(() => validateEnvName(env)).toThrow(/environment name/);
     }
   );
 
+  it("rejects over-long names with a friendly error", () => {
+    expect(() => validateEnvName("x".repeat(300))).toThrow(/at most 200/);
+  });
+
   it("rejects non-strings", () => {
     expect(() => validateEnvName(undefined)).toThrow(/environment name/);
     expect(() => validateEnvName(42)).toThrow(/environment name/);
+    expect(() => validateEnvName(false)).toThrow(/environment name/);
   });
 });
 
 describe("requireEnv / configPathOf", () => {
-  it("rejects a missing or empty -e", () => {
+  it("rejects a missing, empty, blank, or negated -e with the CLI message", () => {
     expect(() => requireEnv({ _: [] })).toThrow(/-e option/);
     expect(() => requireEnv({ _: [], e: "" })).toThrow(/-e option/);
+    expect(() => requireEnv({ _: [], e: "  " })).toThrow(/-e option/);
+    expect(() => requireEnv({ _: [], e: false })).toThrow(/-e option/);
   });
 
   it("rejects a repeated -e instead of joining the values", () => {
     expect(() => requireEnv({ _: [], e: ["a", "b"] })).toThrow(/only once/);
   });
 
-  it("returns undefined for a missing or empty -p and rejects a repeated one", () => {
+  it("returns undefined for an absent -p and rejects empty, negated, or repeated ones", () => {
     expect(configPathOf({ _: [] })).toBeUndefined();
-    expect(configPathOf({ _: [], p: "" })).toBeUndefined();
     expect(configPathOf({ _: [], p: "secrets" })).toBe("secrets");
+    expect(() => configPathOf({ _: [], p: "" })).toThrow(/requires a directory/);
+    expect(() => configPathOf({ _: [], p: " " })).toThrow(/requires a directory/);
+    expect(() => configPathOf({ _: [], p: false })).toThrow(/requires a directory/);
     expect(() => configPathOf({ _: [], p: ["a", "b"] })).toThrow(/only once/);
   });
 });

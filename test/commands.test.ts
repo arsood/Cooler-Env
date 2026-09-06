@@ -17,13 +17,17 @@ const ENV = { _: [], e: "test" };
 describe("add / edit / delete round-trips", () => {
   let sandbox: Sandbox;
 
+  let log: jest.SpyInstance;
+
   beforeEach(async () => {
     sandbox = makeSandbox();
     prompt.mockReset();
+    log = jest.spyOn(console, "log").mockImplementation(() => {});
     await init(ENV);
   });
 
   afterEach(() => {
+    log.mockRestore();
     sandbox.restore();
     delete process.env.API_KEY;
     delete process.env.DB_URL;
