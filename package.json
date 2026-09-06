@@ -38,18 +38,18 @@
     "minimist": "^1.2.8"
   },
   "devDependencies": {
-    "@eslint/js": "^9.15.0",
+    "@eslint/js": "^10",
     "@types/figlet": "^1.5.8",
     "@types/jest": "^30.0.0",
     "@types/minimist": "^1.2.5",
     "@types/node": "^22.9.0",
-    "eslint": "^9.15.0",
-    "eslint-config-prettier": "^10.0.0",
+    "eslint": "^10",
+    "eslint-config-prettier": "^10",
     "jest": "^30.0.0",
     "prettier": "^3.3.3",
     "ts-jest": "^29.4.12",
     "typescript": "^5.3.3",
-    "typescript-eslint": "^8.67.0"
+    "typescript-eslint": "^8.69"
   },
   "resolutions": {
     "tmp": "^0.2.5",
