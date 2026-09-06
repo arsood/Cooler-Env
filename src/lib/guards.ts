@@ -20,12 +20,20 @@ export const assertInitialized = (paths: Paths, env: string): void => {
 
 const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
+// A valid environment-variable name: a letter or underscore, then letters,
+// digits, or underscores. Keeps stored keys usable as real env vars once
+// injected into `process.env`.
+const KEY_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
 /** inquirer validator: non-empty, trimmed, and safe to store as a key name. */
 export const validateKeyName = (value: string): true | string => {
   const trimmed = value.trim();
 
   if (!trimmed.length) return "Please enter a non-empty key name.";
   if (DANGEROUS_KEYS.has(trimmed)) return `"${trimmed}" is a reserved name.`;
+  if (!KEY_NAME_PATTERN.test(trimmed)) {
+    return "Key names must start with a letter or underscore and contain only letters, digits, and underscores (e.g. API_KEY).";
+  }
 
   return true;
 };

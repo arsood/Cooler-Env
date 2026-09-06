@@ -18,6 +18,10 @@ const add = async (argv: Argv): Promise<void> => {
 
   const secrets = await readSecrets(paths);
 
+  // Mask the secret value by default so it isn't echoed to the terminal (and
+  // captured in scrollback); `--show` opts back into a visible prompt.
+  const show = argv.show === true;
+
   const answers = await inquirer.prompt<{ keyName: string; keyValue: string }>([
     {
       name: "keyName",
@@ -27,7 +31,8 @@ const add = async (argv: Argv): Promise<void> => {
     },
     {
       name: "keyValue",
-      type: "input",
+      type: show ? "input" : "password",
+      mask: show ? undefined : "*",
       message: "What is the value of the key you would like to add?",
       validate: validateValue,
     },

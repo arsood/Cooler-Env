@@ -130,6 +130,13 @@ const init = async (argv: Argv): Promise<void> => {
   );
 
   const newKey = crypto.randomBytes(32).toString("hex");
+  // Remove any existing key first so writeFileSync *creates* the file and its
+  // `mode` applies. On an overwrite the mode is ignored, so on a re-init the
+  // new key would otherwise be written into a file that kept its old (possibly
+  // world-readable) permissions — and never sit in that file at 0644 even
+  // momentarily. (umask can only clear permission bits, so 0600 at creation is
+  // safe regardless of the caller's umask.)
+  fs.rmSync(paths.keyFile, { force: true });
   fs.writeFileSync(paths.keyFile, newKey, { mode: 0o600 });
   console.log(chalk.green(`Wrote encryption key to: ${paths.keyFile}`));
 
