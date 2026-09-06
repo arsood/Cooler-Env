@@ -29,6 +29,7 @@ Commands:
   edit     Change an existing key's value
   delete   Remove one or more keys
   list     List key names (add --values to include values)
+  export   Print all secrets as a .env file (or --shell to source)
 
 Options:
   -e <env>          Environment name (required), e.g. development, production
@@ -37,6 +38,7 @@ Options:
   -v, --value <val> add: the value (non-interactive); omit to read it from stdin
   --show            add/edit: type the value in the clear (default: hidden)
   --values          list: also print values
+  --shell           export: emit \`export KEY=…\` lines to source into a shell
   -h, --help        Show this help
   --version         Show the version
 
@@ -45,4 +47,6 @@ Examples:
   cooler-env add -e development
   cooler-env add -e development -k API_KEY -v sk_live_123
   printf %s "$SECRET" | cooler-env add -e production -k API_KEY
-  cooler-env list -e development --values`;
+  cooler-env list -e development --values
+  cooler-env export -e development > .env
+  eval "$(cooler-env export -e development --shell)"`;

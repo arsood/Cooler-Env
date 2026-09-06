@@ -10,6 +10,7 @@ import add from "./commands/add";
 import edit from "./commands/edit";
 import deleteCmd from "./commands/delete";
 import list from "./commands/list";
+import exportCmd from "./commands/export";
 
 type Command = (argv: Argv) => Promise<void>;
 
@@ -19,6 +20,7 @@ const commands: Record<string, Command> = {
   edit,
   delete: deleteCmd,
   list,
+  export: exportCmd,
 };
 
 export const COMMAND_NAMES = Object.keys(commands);
@@ -31,6 +33,7 @@ const KNOWN_OPTIONS = new Set([
   "p",
   "show",
   "values",
+  "shell",
   "help",
   "h",
   "version",
@@ -68,7 +71,7 @@ export const parseArgs = (args: string[]): Argv => {
       // `-v` is the `add` value (not a --version alias), so both -v and -k
       // stay strings and never swallow a following flag.
       string: ["e", "p", "k", "v"],
-      boolean: ["show", "values", "help", "version"],
+      boolean: ["show", "values", "shell", "help", "version"],
       alias: { h: "help", k: "key", v: "value" },
     }) as unknown as Argv;
   } catch {
