@@ -96,15 +96,19 @@ describe("run (CLI dispatch)", () => {
     fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8"),
   ).version as string;
 
-  it.each([["--version"], ["-v"]])(
-    "prints the package version for %s",
-    async (flag) => {
-      await run([flag]);
+  it("prints the package version for --version", async () => {
+    await run(["--version"]);
 
-      expect(log).toHaveBeenCalledWith(pkgVersion);
-      expect(pkgVersion).toMatch(/^\d+\.\d+\.\d+/);
-    },
-  );
+    expect(log).toHaveBeenCalledWith(pkgVersion);
+    expect(pkgVersion).toMatch(/^\d+\.\d+\.\d+/);
+  });
+
+  it("no longer treats -v as --version (it is the add value)", async () => {
+    // -v carries a value now; with no command it falls through to the usual
+    // error rather than printing the version.
+    await expect(run(["-v", "x"])).rejects.toThrow(/valid command/);
+    expect(log).not.toHaveBeenCalledWith(pkgVersion);
+  });
 
   it("prints the version and dispatches no command when combined", async () => {
     await run(["init", "-e", "t", "--version"]);

@@ -34,7 +34,10 @@ const KNOWN_OPTIONS = new Set([
   "help",
   "h",
   "version",
+  "k",
+  "key",
   "v",
+  "value",
 ]);
 
 const warnUnknownOptions = (argv: Argv): void => {
@@ -62,9 +65,11 @@ const warnUnknownOptions = (argv: Argv): void => {
 export const parseArgs = (args: string[]): Argv => {
   try {
     return minimist(args, {
-      string: ["e", "p"],
+      // `-v` is the `add` value (not a --version alias), so both -v and -k
+      // stay strings and never swallow a following flag.
+      string: ["e", "p", "k", "v"],
       boolean: ["show", "values", "help", "version"],
-      alias: { h: "help", v: "version" },
+      alias: { h: "help", k: "key", v: "value" },
     }) as unknown as Argv;
   } catch {
     throw new CoolerEnvError("Could not parse the command-line options.");

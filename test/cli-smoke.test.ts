@@ -24,11 +24,11 @@ interface CliResult {
   status: number | null;
 }
 
-const runCli = (args: string[], cwd: string): CliResult => {
+const runCli = (args: string[], cwd: string, input = ""): CliResult => {
   try {
     const stdout = execFileSync(process.execPath, [CLI, ...args], {
       cwd,
-      input: "", // closed stdin: any prompt aborts immediately
+      input, // default "" -> closed stdin, so any prompt aborts immediately
       encoding: "utf8",
       stdio: ["pipe", "pipe", "pipe"],
     });
@@ -92,6 +92,20 @@ describe("compiled CLI smoke (real inquirer)", () => {
     // SIGINT convention wired up in cli.ts.
     expect(status).toBe(130);
     expect(output).toContain("Cancelled.");
+  });
+
+  it("adds a piped value non-interactively and stores it (trimming the newline)", () => {
+    expect(runCli(["init", "-e", "t"], sandbox.dir).status).toBe(0);
+
+    const add = runCli(
+      ["add", "-e", "t", "-k", "PIPED"],
+      sandbox.dir,
+      "s3cr3t\n",
+    );
+    expect(add.status).toBe(0);
+
+    const { output } = runCli(["list", "-e", "t", "--values"], sandbox.dir);
+    expect(output).toContain("PIPED=s3cr3t");
   });
 
   it("renders the edit key-picker prompt without a fatal error", async () => {

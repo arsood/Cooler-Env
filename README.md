@@ -93,6 +93,13 @@ cooler-env add -e development
 cooler-env add -e development --show   # reveal the value while typing
 ```
 
+For scripting and CI, pass the key with `-k`/`--key` and the value with `-v`/`--value`, which skips the prompts. Omit `-v` to read the value from **stdin** (a single trailing newline is trimmed) — preferable for secrets, since a value on the command line is visible in the process list (`ps`).
+
+```bash
+cooler-env add -e production -k API_KEY -v sk_live_123
+printf %s "$SECRET" | cooler-env add -e production -k API_KEY   # value via stdin
+```
+
 ### `edit`
 
 Opens an interactive prompt to pick an existing key and set a new value. The new value is **hidden** by default (no echo, no length shown), and the current value is not pre-filled — leave the prompt **blank to keep the current value** unchanged, so a stray Enter can't erase a secret. Pass `--show` to type in the clear, with the current value pre-filled as an editable default.

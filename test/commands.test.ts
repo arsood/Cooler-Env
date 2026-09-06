@@ -62,6 +62,35 @@ describe("add / edit / delete round-trips", () => {
     expect(secrets.EMPTY).toBe("");
   });
 
+  it("adds non-interactively with -k/-v and never prompts", async () => {
+    await add({ ...ENV, key: "API_KEY", value: "sk_live_1" });
+
+    expect(prompt).not.toHaveBeenCalled();
+    const secrets = await loadEnv("test");
+    expect(secrets.API_KEY).toBe("sk_live_1");
+  });
+
+  it("non-interactively allows an empty value but rejects a bad key", async () => {
+    await add({ ...ENV, key: "EMPTY", value: "" });
+    await expect(add({ ...ENV, key: "BAD-KEY", value: "x" })).rejects.toThrow(
+      /must start with a letter/,
+    );
+
+    const secrets = await loadEnv("test");
+    expect(secrets.EMPTY).toBe("");
+  });
+
+  it("non-interactive add requires a key when only a value is given", async () => {
+    await expect(add({ ...ENV, value: "x" })).rejects.toThrow(/requires a key/);
+  });
+
+  it("non-interactively refuses to overwrite an existing key", async () => {
+    await add({ ...ENV, key: "API_KEY", value: "one" });
+    await expect(add({ ...ENV, key: "API_KEY", value: "two" })).rejects.toThrow(
+      /already exists/,
+    );
+  });
+
   it("keeps the current value when edit is submitted blank", async () => {
     prompt.mockResolvedValueOnce({ keyName: "API_KEY", keyValue: "keep-me" });
     await add(ENV);
