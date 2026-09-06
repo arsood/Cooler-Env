@@ -89,10 +89,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Unrecognized options and unexpected arguments are now ignored with a warning
   on stderr instead of being silently accepted, and a malformed option no longer
   crashes with a raw stack trace.
-- `init` now warns when the current directory is not inside a git repository
-  (no `.git` at or above it), since the `.gitignore` it writes there can only
-  protect the key once it lives in a repo. The key and encrypted file are still
-  created.
+- `init` now warns when the `.gitignore` it writes cannot protect the key —
+  when no git repository contains the key's directory at or above the current
+  directory (no repo at all, or the key lives in a repo nested below cwd whose
+  `.gitignore` this one isn't). The key and encrypted file are still created.
 
 ### Security
 
@@ -142,8 +142,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `prepublishOnly` now runs lint, format check, and tests (with coverage)
   before building.
 - Test coverage is enforced: `yarn test:coverage` runs Jest with a
-  `coverageThreshold` floor (90% statements/functions/lines, 85% branches over
-  `src/`), wired into CI and `prepublishOnly`.
+  `coverageThreshold` floor (90% statements/lines, 85% branches/functions over
+  `src/` excluding the thin `cli.ts` entry point), wired into CI and
+  `prepublishOnly`.
 
 ## [3.0.0] - 2026-08-10
 

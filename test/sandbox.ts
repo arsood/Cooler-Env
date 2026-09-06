@@ -7,6 +7,8 @@ export interface Sandbox {
   restore: () => void;
 }
 
+const CEILING = "GIT_CEILING_DIRECTORIES";
+
 /**
  * Create an isolated temp directory and chdir into it so commands (which are
  * rooted at process.cwd()) operate entirely inside it — never touching the
@@ -26,9 +28,18 @@ export const makeSandbox = (): Sandbox => {
   const previousCwd = process.cwd();
   process.chdir(dir);
 
+  // Bound `init`'s walk up the tree at the sandbox's parent so it can never
+  // reach a real `.git` above the temp dir (e.g. a git-tracked $HOME or a
+  // TMPDIR pointed inside a repo), which would otherwise make the
+  // missing-repo test host-dependent.
+  const previousCeiling = process.env[CEILING];
+  process.env[CEILING] = path.dirname(dir);
+
   return {
     dir,
     restore: () => {
+      if (previousCeiling === undefined) delete process.env[CEILING];
+      else process.env[CEILING] = previousCeiling;
       process.chdir(previousCwd);
       fs.rmSync(dir, { recursive: true, force: true });
     },

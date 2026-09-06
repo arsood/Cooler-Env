@@ -182,9 +182,13 @@ describe("init", () => {
     }
   });
 
+  const warnedNoRepo = (): boolean =>
+    /no git repository containing/.test(error.mock.calls.flat().join("\n"));
+
   it("warns when cwd is not inside a git repository", async () => {
     // The sandbox is marked as a repo root; drop the marker so cwd has no
-    // `.git` at or above it.
+    // `.git` at or above it. (The sandbox's GIT_CEILING_DIRECTORIES stops the
+    // walk at the temp dir, so this is hermetic regardless of the host.)
     fs.rmSync(path.join(sandbox.dir, ".git"), { recursive: true, force: true });
 
     await init({ _: [], e: "dev" });
@@ -192,18 +196,38 @@ describe("init", () => {
     // The .gitignore is still written (speculative protection), but a warning
     // flags that git won't honor it here.
     expect(readGitignore(sandbox.dir)).toContain("/config/dev.key");
-    expect(error.mock.calls.flat().join("\n")).toMatch(
-      /no git repository found/,
-    );
+    expect(warnedNoRepo()).toBe(true);
   });
 
-  it("does not warn about a missing repo when cwd is inside one", async () => {
-    // The sandbox already carries a `.git` marker, so init should stay quiet.
+  it("stays quiet when the repo root is a directory above cwd", async () => {
+    // `.git` marker is at the sandbox root; run init from a subdirectory, so
+    // the repo root is strictly above cwd and its .gitignore is honored.
+    fs.mkdirSync(path.join(sandbox.dir, "sub"));
+    process.chdir(path.join(sandbox.dir, "sub")); // sandbox.restore() resets cwd
+
     await init({ _: [], e: "dev" });
 
-    expect(error.mock.calls.flat().join("\n")).not.toMatch(
-      /no git repository found/,
-    );
+    expect(warnedNoRepo()).toBe(false);
+  });
+
+  it("detects a repo whose `.git` is a file (worktree/submodule)", async () => {
+    fs.rmSync(path.join(sandbox.dir, ".git"), { recursive: true, force: true });
+    fs.writeFileSync(path.join(sandbox.dir, ".git"), "gitdir: /elsewhere/.git");
+
+    await init({ _: [], e: "dev" });
+
+    expect(warnedNoRepo()).toBe(false);
+  });
+
+  it("warns when the key lands in a repo nested below cwd", async () => {
+    // cwd (sandbox root) is its own repo, but the key goes into a nested repo
+    // whose root is below cwd — so cwd's .gitignore never covers the key.
+    const inner = path.join(sandbox.dir, "packages", "app");
+    fs.mkdirSync(path.join(inner, ".git"), { recursive: true });
+
+    await init({ _: [], e: "dev", p: path.join("packages", "app", "config") });
+
+    expect(warnedNoRepo()).toBe(true);
   });
 
   it("warns and still completes when .gitignore cannot be written", async () => {
