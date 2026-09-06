@@ -31,7 +31,7 @@ Every environment (`development`, `production`, …) is backed by a trio of file
 | `<env>.key`     | ❌ **Never** | Hex secret key (`crypto.randomBytes(32)`). Auto-added to `.gitignore` on `init`. |
 | `<env>.yml.enc` | ✅ Yes       | The encrypted secrets blob. Safe to commit.                                      |
 
-Encryption uses Node's built-in, authenticated **`aes-256-gcm`**. The on-disk blob is a single binary payload — `[salt(16)][iv(12)][authTag(16)][ciphertext]` — with a fresh random salt and IV per write and the AES key derived from your secret key via `scrypt`. Any tampering or a wrong key **fails loudly** rather than returning garbage. See [Security model](#security-model) for details.
+Encryption uses Node's built-in, authenticated **`aes-256-gcm`**. The on-disk blob is a single binary payload — a 5-byte versioned header (`[magic "CENV"(4)][version(1)]`) followed by `[salt(16)][iv(12)][authTag(16)][ciphertext]` — with a fresh random salt and IV per write and the AES key derived from your secret key via `scrypt`. Any tampering or a wrong key **fails loudly** rather than returning garbage. See [Security model](#security-model) for details.
 
 ## Installation
 
@@ -176,7 +176,7 @@ try {
 
 - **Cipher:** `aes-256-gcm` (authenticated encryption) from Node's built-in `crypto`. No third-party crypto dependencies.
 - **Key derivation:** the AES key is derived from your secret key with `scrypt` against a per-write random salt.
-- **On-disk format:** a single binary blob — `[salt(16)][iv(12)][authTag(16)][ciphertext]`. A fresh salt + IV is generated on every write, so identical secrets never produce identical ciphertext.
+- **On-disk format:** a single binary blob — a 5-byte versioned header (`[magic "CENV"(4)][version(1)]`) followed by `[salt(16)][iv(12)][authTag(16)][ciphertext]`. A fresh salt + IV is generated on every write, so identical secrets never produce identical ciphertext. The header lets the KDF/cipher parameters evolve; headerless blobs written by older versions are still read.
 - **Integrity:** GCM's auth tag means a wrong key or any tampering throws instead of yielding corrupt output.
 - **No plaintext on disk:** writes produce ciphertext in memory and **atomically rename** a temp file over the encrypted file, so plaintext never lands on disk and an interrupted write can't leave a half-written file.
 - **Prototype-pollution guard:** decrypted payloads are sanitized to drop `__proto__` / `constructor` / `prototype` keys before they reach your object or `process.env`.
