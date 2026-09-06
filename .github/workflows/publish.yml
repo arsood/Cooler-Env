@@ -1,0 +1,56 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # required for npm provenance
+    # Job-level so `npm publish` (and the prepublishOnly gate it runs) can read
+    # the .npmrc setup-node writes for registry-url and resolve the token.
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+          registry-url: https://registry.npmjs.org
+
+      - name: Verify the release tag matches package.json
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::Release tag '$GITHUB_REF_NAME' does not match package.json version '$PKG'"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      # The full quality gate. prepublishOnly re-runs it during `npm publish`;
+      # these named steps surface exactly which check failed in the Actions UI.
+      - name: Lint
+        run: yarn lint
+
+      - name: Check formatting
+        run: yarn format:check
+
+      - name: Build
+        run: yarn build
+
+      - name: Test (with coverage)
+        run: yarn test:coverage
+
+      - name: Publish to npm
+        run: npm publish --provenance --access public
