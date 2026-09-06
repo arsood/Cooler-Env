@@ -69,6 +69,13 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `instanceof` it, as the README already documented.
 - `--show` flag on `add` and `edit` to type secret values in the clear (and,
   on `edit`, to pre-fill and edit the current value in place).
+- `list` command: prints an environment's key names (sorted, one per line);
+  `--values` also prints the values as `KEY=value`, quoting any value that
+  contains spaces, quotes, `=`, or a newline so each key stays on one line.
+- `--help` / `-h` (usage, commands, and options) and `--version` / `-v`.
+- Unrecognized options and unexpected arguments are now ignored with a warning
+  on stderr instead of being silently accepted, and a malformed option no longer
+  crashes with a raw stack trace.
 
 ### Security
 

@@ -110,6 +110,24 @@ Opens an interactive prompt to pick one or more keys to remove.
 cooler-env delete -e development
 ```
 
+### `list`
+
+Prints the key names for an environment, one per line, sorted (byte order). Pass `--values` to also print the values as `KEY=value` — a value that contains spaces, quotes, `=`, or a newline is quoted (`KEY="..."`) so every key stays on its own line. This writes secrets to stdout, so use it deliberately.
+
+```bash
+cooler-env list -e development
+cooler-env list -e development --values
+```
+
+### `--help` / `--version`
+
+```bash
+cooler-env --help      # usage, commands, and options
+cooler-env --version   # the installed version
+```
+
+Unrecognized options and unexpected arguments are ignored with a warning on stderr rather than failing.
+
 ## Programmatic API
 
 ### `loadEnv(env, options?)`

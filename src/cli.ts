@@ -4,12 +4,24 @@ import chalk from "chalk";
 
 import { printBanner } from "./lib/banner";
 import { CoolerEnvError } from "./lib/errors";
-import { run } from "./run";
+import { run, parseArgs } from "./run";
 
-// Only decorate interactive sessions; keep piped stdout clean.
-if (process.stdout.isTTY) printBanner();
+const args = process.argv.slice(2);
 
-run(process.argv.slice(2)).catch((error: unknown) => {
+// Only decorate interactive sessions; keep piped stdout clean. Skip the banner
+// for --help/--version (parsing the same way run() does, so `--version=1`,
+// `-vh`, etc. are handled consistently) so their output stands alone. A parse
+// error here is left for run() to surface.
+let wantsInfoOutput = false;
+try {
+  const argv = parseArgs(args);
+  wantsInfoOutput = argv.help === true || argv.version === true;
+} catch {
+  /* run() will report it */
+}
+if (process.stdout.isTTY && !wantsInfoOutput) printBanner();
+
+run(args).catch((error: unknown) => {
   process.exitCode = 1;
 
   if (error instanceof CoolerEnvError) {

@@ -1,4 +1,5 @@
 import { execFileSync, execSync } from "child_process";
+import fs from "fs";
 import path from "path";
 
 import { resolvePaths } from "../src/lib/paths";
@@ -67,6 +68,19 @@ describe("compiled CLI smoke (real inquirer)", () => {
 
     expect(output).toContain("valid command");
     expect(output).not.toMatch(FATAL);
+  });
+
+  it("prints the real package version for --version", () => {
+    // Reads package.json relative to the compiled dist/, so this exercises the
+    // build-path resolution the mocked in-process test can't.
+    const pkgVersion = JSON.parse(
+      fs.readFileSync(path.join(ROOT, "package.json"), "utf8"),
+    ).version as string;
+
+    const { output, status } = runCli(["--version"], sandbox.dir);
+
+    expect(status).toBe(0);
+    expect(output.trim()).toBe(pkgVersion);
   });
 
   it("renders the add prompt without a fatal error", () => {
